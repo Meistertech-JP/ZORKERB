@@ -52,7 +52,7 @@ Revision r29 has been verified under PyEmuera 3.0.0b2 with:
 - comparisons against the original story using the same random number sequence;
 - a complete game reaching the ending with 350 points in 613 moves, using ordinary commands only.
 
-A few paths whose output depends on the original interpreter, such as input lines longer than 120 characters, do not produce the same text as the original. The game has not been verified with the Windows Emuera executable.
+A few paths whose output depends on the original interpreter, such as input lines longer than 120 characters, do not produce the same text as the original. On Emuera 1.824 (Windows), start-up and the first moves have been checked; the regression tests and comparisons with the original were run under PyEmuera.
 
 For details, see:
 

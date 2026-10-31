@@ -55,7 +55,7 @@ ZORKERB r29 は、ZORK I: The Great Underground Empire（Release 119 / Serial 88
   - 物体0を指す IT への操作
   - 目的語なしの SWIM
 - 端末で対話的に遊ぶと、ゲームの `>` と PyEmuera の入力欄の `> ` が重なって表示されます。
-- Windows 版 Emuera での動作は検証していません。
+- Emuera 1.824（Windows）では起動と序盤の操作を確認しています。回帰試験と原作との比較は PyEmuera で行っています。
 
 詳細は [docs/COMPATIBILITY_ja.md](docs/COMPATIBILITY_ja.md) を参照してください。
 
@@ -129,7 +129,7 @@ See [docs/VERIFICATION_en.md](docs/VERIFICATION_en.md) for details.
   - actions on IT when IT refers to object 0;
   - SWIM without an object.
 - In an interactive terminal, the game's `>` prompt and PyEmuera's `> ` input line appear together.
-- The game has not been verified with the Windows Emuera executable.
+- On Emuera 1.824 (Windows), start-up and the first moves have been checked; the regression tests and comparisons with the original were run under PyEmuera.
 
 See [docs/COMPATIBILITY_en.md](docs/COMPATIBILITY_en.md).
 

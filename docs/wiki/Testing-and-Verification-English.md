@@ -14,7 +14,7 @@ The verification tools, test data, comparison interpreter, original story and ra
 | OS and Python | Linux x86_64, Python 3.13 |
 | Reference | The original story (Release 119 / Serial 880429, SHA-256 `37084966477dff679282de42974b2077156b1bd68fad92a65d4ea94d8eb64d79`) run under Frotz 2.56pre (dumb interface) |
 
-There are no results for the Windows Emuera executable.
+On Emuera 1.824 (Windows), start-up and the first five moves were observed and matched the original. The regression tests and comparisons with the original were run under PyEmuera 3.0.0b2, not under Emuera.
 
 ## Methods
 

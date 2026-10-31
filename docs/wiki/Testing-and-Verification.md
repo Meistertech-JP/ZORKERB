@@ -14,7 +14,7 @@ ZORKERB r29 について行った検証の環境、方法、範囲、結果を�
 | OS と Python | Linux x86_64、Python 3.13 |
 | 比較対象 | 原作 story（Release 119 / Serial 880429、SHA-256 `37084966477dff679282de42974b2077156b1bd68fad92a65d4ea94d8eb64d79`）を Frotz 2.56pre（dumb インターフェース）で実行したもの |
 
-Windows 版 Emuera での実行結果はありません。
+Emuera 1.824（Windows）では、起動と序盤の5手の表示を確認し、応答が原作と一致しました。回帰試験と原作との比較は PyEmuera 3.0.0b2 で行い、Emuera では実行していません。
 
 ## 方法
 

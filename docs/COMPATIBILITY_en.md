@@ -8,7 +8,7 @@ This page covers ZORKERB r29. The original game is Zork I Release 119 / Serial 8
 | --- | --- |
 | PyEmuera 3.0.0b2 (unmodified, SHA-256 `8473b250…4bcb`), Linux x86_64, Python 3.13 | All verification was run in this environment; see [Verification](VERIFICATION_en.md). |
 | PyEmuera 3.0.0b2 on other operating systems | The game uses no OS-dependent features. Terminal input and display follow PyEmuera and the terminal. |
-| Windows Emuera executable | No results recorded. |
+| Emuera 1.824 (Windows) | Start-up, the title screen, a new game and the first five moves (`what`, `what is mailbox`, `take mailbox`, `open mailbox`, `read leaflet`) were observed; the responses matched the original. The regression tests and comparisons with the original were not run in this environment. |
 | Other PyEmuera versions | Not verified. |
 
 The game consists of ERB, ERH and CSV files only and does not call external programs or files at run time.
@@ -40,7 +40,7 @@ In the following cases the original's output is decided by the Z-machine interpr
 
 ### Terminal display
 
-- **Prompt:** in an interactive terminal, PyEmuera's input line shows `> ` after the game's own `>`, so the prompt appears twice. When input is supplied from a file (`--inputs`), PyEmuera shows no input line.
+- **Prompt:** with PyEmuera in an interactive terminal, PyEmuera's input line shows `> ` after the game's own `>`, so the prompt appears twice. When input is supplied from a file (`--inputs`), PyEmuera shows no input line. Emuera shows `>` once and echoes the input on the next line.
 - **Line wrapping:** the game breaks long text at a fixed width. The breaks may fall in different places than in the original interpreter.
 
 ### Scope of state comparisons
