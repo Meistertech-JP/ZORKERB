@@ -16,6 +16,11 @@ ZORKERB は Infocom、Microsoft、Emuera の作者による公式版ではなく
 
 ゲームは、同梱の Emuera 互換エンジン [PyEmuera](https://github.com/Meistertech-JP/PyEmuera) 3.0.0b2 で動かします。
 
+## 入手
+
+- **配布 ZIP：** GitHub の Releases にある `ZORKERB-r29.zip` が、検証済みの配布物です。同じ Release の `SHA256SUMS.txt` で SHA-256 を確かめてから、新しいフォルダーへ展開してください。
+- **リポジトリ：** `git clone` で取得しても、同じファイルが揃います。GitHub が自動で作る「Source code」の ZIP・tar.gz もリポジトリの内容と同じですが、検証済みの配布物は `ZORKERB-r29.zip` です。
+
 ## 動作環境と起動
 
 - Python 3.10 以上が必要です（PyEmuera の要件）。
@@ -71,6 +76,10 @@ r29 では、PyEmuera 3.0.0b2 上で次の検証を行いました。
 | [変更履歴](CHANGELOG.md) | 版ごとの変更 |
 | [Wiki 原稿](docs/wiki/Home.md) | Wiki 用の原稿 |
 
+## 謝辞
+
+『ZORK I』は、Marc Blank、Dave Lebling、Bruce Daniels、Tim Anderson が制作し、Infocom が発売した作品です。Zork I のソースを MIT License で公開した Microsoft と、原典を保存・公開している historicalsource/zork1 に感謝します。
+
 ## ライセンスと権利表示
 
 ZORKERB の ERB 移植コードは MIT License です（Copyright (c) 2026 Meistertech-JP、[LICENSE](LICENSE)）。
@@ -78,5 +87,7 @@ ZORKERB の ERB 移植コードは MIT License です（Copyright (c) 2026 Meist
 原作 Zork I のソースと文章は、Microsoft の MIT License に従います（Copyright (c) 2025 Microsoft、[licenses/ZORK1-MIT.txt](licenses/ZORK1-MIT.txt)）。
 
 同梱の PyEmuera は MIT License です。Emuera 由来の部分などは、それぞれの条件に従います（[licenses/PyEmuera/](licenses/PyEmuera/LICENSE)）。
+
+Zork I のソースの MIT License は、ソースコードの著作権についての許諾で、商標の使用を許諾するものではありません。「Zork」「Infocom」などの名称は、それぞれの権利者の商標である場合があります。ZORKERB は、これらの名称を作品を説明する目的でのみ使っています。公式のロゴや図案は使っていません。
 
 詳細は [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) を参照してください。

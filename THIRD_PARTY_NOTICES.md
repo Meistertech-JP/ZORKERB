@@ -33,6 +33,10 @@ The license texts and notices are inside the `.pyz` file. Byte-for-byte copies a
 | `licenses/PyEmuera/licenses/MICROSOFT_REFERENCE_SOURCE_MIT.txt` | Microsoft Reference Source MIT License |
 | `licenses/PyEmuera/licenses/UNICODE_LICENSE_V3.txt` | Unicode License V3 |
 
-## 4. Not included
+## 4. Names and trademarks
+
+The MIT License of the Zork I source and of ZORKERB covers copyright only; it does not grant rights to use any trademark. Names such as "Zork" and "Infocom" may be trademarks of their respective owners. ZORKERB uses these names only to identify and describe the work. It contains no official logos, box art, packaging or marketing material.
+
+## 5. Not included
 
 No Emuera executable or source, Z-machine interpreter, original story file, ZIL source, save file or font is included.

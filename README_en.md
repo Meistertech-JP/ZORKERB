@@ -16,6 +16,11 @@ All game logic is written in ERB. At run time the game uses no Z-machine interpr
 
 The game runs on the included Emuera-compatible engine [PyEmuera](https://github.com/Meistertech-JP/PyEmuera) 3.0.0b2.
 
+## Getting ZORKERB
+
+- **Distribution ZIP:** `ZORKERB-r29.zip` on the GitHub Releases page is the verified distribution. Check its SHA-256 against `SHA256SUMS.txt` from the same release, then extract it into a new folder.
+- **Repository:** cloning the repository gives the same files. The "Source code" ZIP and tar.gz that GitHub generates automatically also match the repository, but the verified distribution is `ZORKERB-r29.zip`.
+
 ## Requirements and running the game
 
 - Python 3.10 or later (required by PyEmuera).
@@ -72,6 +77,10 @@ For details, see:
 
 The ZIL-to-ERB mapping is in Japanese ([docs/SOURCE_MAPPING_ja.md](docs/SOURCE_MAPPING_ja.md)).
 
+## Acknowledgements
+
+*ZORK I* was written by Marc Blank, Dave Lebling, Bruce Daniels and Tim Anderson and published by Infocom. Thanks to Microsoft for releasing the Zork I source under the MIT License, and to historicalsource/zork1 for preserving and publishing it.
+
 ## License and notices
 
 The ZORKERB ERB code is released under the MIT License, Copyright (c) 2026 Meistertech-JP ([LICENSE](LICENSE)).
@@ -79,5 +88,7 @@ The ZORKERB ERB code is released under the MIT License, Copyright (c) 2026 Meist
 The original Zork I source and game text are under Microsoft's MIT License, Copyright (c) 2025 Microsoft ([licenses/ZORK1-MIT.txt](licenses/ZORK1-MIT.txt)).
 
 The included PyEmuera is under the MIT License. Emuera-derived and other parts keep their own terms ([licenses/PyEmuera/](licenses/PyEmuera/LICENSE)).
+
+The MIT License of the Zork I source is a copyright license; it does not grant rights to use trademarks. Names such as "Zork" and "Infocom" may be trademarks of their respective owners. ZORKERB uses them only to describe the work, and uses no official logos or artwork.
 
 See [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
