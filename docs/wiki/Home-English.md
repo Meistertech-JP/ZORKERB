@@ -12,7 +12,7 @@ ZORKERB ports Infocom's text adventures to eraBASIC (ERB, ERH and CSV). This rep
 - All game logic is written in ERB. Both games run on one shared PyEmuera 3.0.0 (`PyEmuera-3.0.0.pyz` at the repository root); no Z-machine interpreter and no original story file are used at run time.
 - On Windows, double-click `ZORKERB-I.bat` or `ZORKERB-II.bat`.
 
-ZORKERB is not an official release of, and is not endorsed by, Infocom, Microsoft, the authors of Emuera or the PyEmuera developers.
+ZORKERB is not an official release of, and is not endorsed by, Infocom and Microsoft.
 
 ## Play
 
