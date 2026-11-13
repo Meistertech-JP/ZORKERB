@@ -1,0 +1,1519 @@
+﻿; gparser.zil (Zork II r63), ported routine by routine. The compiled listing
+; gparser.zap is the reference where the ZIL has conditional code.
+; Lexv: Z2_LXD:p = word id (1-based dictionary position, 0 = unknown),
+; Z2_LXW:p = the typed text, p = 1..Z2_LEXWORDS. A clause pointer is a lexv
+; position; P-OCLAUSE words live at positions 101.. (CLAUSE-ADD).
+
+; V3 dictionary key: six Z-characters (ZORKERB I 39_Dictionary).
+@Z2_DKEY(Z2_S)
+#FUNCTIONS
+#DIMS DYNAMIC Z2_S
+#DIMS DYNAMIC Z2_C
+#DIMS DYNAMIC Z2_OUT
+#DIM DYNAMIC Z2_K
+#DIM DYNAMIC Z2_USED
+#DIM DYNAMIC Z2_COST
+FOR Z2_K, 0, STRLENS(Z2_S)
+    SIF Z2_USED >= 6
+        BREAK
+    Z2_C '= SUBSTRING(Z2_S, Z2_K, 1)
+    IF STRFIND("abcdefghijklmnopqrstuvwxyz", Z2_C) >= 0
+        Z2_COST = 1
+    ELSEIF STRFIND("0123456789.,!?_#'\"/\\-:()", Z2_C) >= 0
+        Z2_COST = 2
+    ELSE
+        Z2_COST = 4
+    ENDIF
+    IF Z2_USED + Z2_COST > 6
+        SIF Z2_USED == 5
+            BREAK
+        RETURNF Z2_OUT + Z2_C
+    ENDIF
+    Z2_OUT += Z2_C
+    Z2_USED += Z2_COST
+NEXT
+RETURNF Z2_OUT
+
+@Z2_LOOKUP(Z2_S)
+#FUNCTION
+#DIMS DYNAMIC Z2_S
+#DIMS DYNAMIC Z2_KEY
+#DIM DYNAMIC Z2_K
+Z2_KEY '= Z2_DKEY(Z2_S)
+FOR Z2_K, 1, Z2_DICT_N + 1
+    SIF Z2_DW:Z2_K == Z2_KEY
+        RETURNF Z2_K
+NEXT
+RETURNF 0
+
+; READ: Z-machine v3 tokenisation. Spaces separate words; the dictionary
+; separators . , " are words of their own.
+@Z2_READ_INPUT
+#DIMS DYNAMIC Z2_S
+#DIMS DYNAMIC Z2_C
+#DIMS DYNAMIC Z2_W
+#DIM DYNAMIC Z2_K
+PRINTS ">"
+INPUTS
+Z2_S '= TOLOWER(RESULTS)
+Z2_SLOT_REQ = 0
+Z2_LEXWORDS = 0
+FOR Z2_K, 0, STRLENS(Z2_S) + 1
+    Z2_C '= SUBSTRING(Z2_S, Z2_K, 1)
+    IF Z2_C == " " || Z2_C == "" || Z2_C == "." || Z2_C == "," || Z2_C == "\""
+        IF Z2_W != "" && Z2_LEXWORDS < 59
+            Z2_LEXWORDS += 1
+            Z2_LXW:Z2_LEXWORDS '= Z2_W
+            Z2_LXD:Z2_LEXWORDS = Z2_LOOKUP(Z2_W)
+        ENDIF
+        Z2_W '= ""
+        IF Z2_C != " " && Z2_C != "" && Z2_LEXWORDS < 59
+            Z2_LEXWORDS += 1
+            Z2_LXW:Z2_LEXWORDS '= Z2_C
+            Z2_LXD:Z2_LEXWORDS = Z2_LOOKUP(Z2_C)
+        ENDIF
+    ELSE
+        Z2_W += Z2_C
+    ENDIF
+NEXT
+
+; "save N" / "restore N" (N = 0..9): the slot stands for the file name the
+; interpreter asks for after SAVE/RESTORE, so it never enters the lexv.
+IF Z2_LEXWORDS == 2 && (Z2_LXW:1 == "save" || Z2_LXW:1 == "restore") && STRLENS(Z2_LXW:2) == 1 && STRFIND("0123456789", Z2_LXW:2) >= 0
+    Z2_SLOT_REQ = TOINT(Z2_LXW:2)
+    Z2_LXW:2 '= ""
+    Z2_LXD:2 = 0
+    Z2_LEXWORDS = 1
+ENDIF
+
+; WT? (PTR BIT B1): B1 > 4 tests the part of speech only.
+@Z2_WT(Z2_W, Z2_BIT, Z2_B1 = 5)
+#FUNCTION
+#DIM DYNAMIC Z2_W
+#DIM DYNAMIC Z2_BIT
+#DIM DYNAMIC Z2_B1
+SIF Z2_W <= 0
+    RETURNF 0
+SIF (Z2_DF:Z2_W & Z2_BIT) == 0
+    RETURNF 0
+SIF Z2_B1 > 4
+    RETURNF 1
+SIF (Z2_DF:Z2_W & 3) == Z2_B1
+    RETURNF Z2_DV1:Z2_W
+RETURNF Z2_DV2:Z2_W
+
+; NUMBER? (PTR): digits with an optional colon (a time). The story does this
+; arithmetic in 16-bit words: SUM can reach 100009 before the > 10000 test
+; stops it, so "65535" is -1, which passes <G? .SUM 1000> (signed) and is
+; taken as a number (#RANDOM 65535 then draws RANDOM 1). Z2_W16 wraps alike.
+@Z2_NUMBERQ(Z2_PT)
+#DIM DYNAMIC Z2_PT
+#DIM DYNAMIC Z2_K
+#DIM DYNAMIC Z2_SUM
+#DIM DYNAMIC Z2_TIM
+#DIM DYNAMIC Z2_HAS_TIM
+#DIMS DYNAMIC Z2_C
+FOR Z2_K, 0, STRLENS(Z2_LXW:Z2_PT)
+    Z2_C '= SUBSTRING(Z2_LXW:Z2_PT, Z2_K, 1)
+    IF Z2_C == ":"
+        Z2_TIM = Z2_SUM
+        Z2_HAS_TIM = 1
+        Z2_SUM = 0
+    ELSEIF Z2_SUM > 10000
+        RETURN 0
+    ELSEIF STRFIND("0123456789", Z2_C) >= 0
+        Z2_SUM = Z2_W16(Z2_SUM * 10 + TOINT(Z2_C))
+    ELSE
+        RETURN 0
+    ENDIF
+NEXT
+Z2_LXD:Z2_PT = W_INTNUM
+SIF Z2_SUM > 1000
+    RETURN 0
+IF Z2_HAS_TIM && Z2_TIM
+    IF Z2_TIM < 8
+        Z2_TIM += 12
+    ELSEIF Z2_TIM > 23
+        RETURN 0
+    ENDIF
+    Z2_SUM = Z2_W16(Z2_SUM + Z2_W16(Z2_TIM * 60))
+ENDIF
+Z2_P_NUMBER = Z2_SUM
+RETURN W_INTNUM
+
+; <OR <GET P-LEXV PTR> <NUMBER? PTR>>
+@Z2_WORD_AT(Z2_PT)
+#DIM DYNAMIC Z2_PT
+SIF Z2_LXD:Z2_PT
+    RETURN Z2_LXD:Z2_PT
+CALL Z2_NUMBERQ, Z2_PT
+RETURN RESULT
+
+@Z2_STUFF_TO_AGAIN
+#DIM DYNAMIC Z2_K
+FOR Z2_K, 1, 60
+    Z2_AGD:Z2_K = Z2_LXD:Z2_K
+    Z2_AGW:Z2_K '= Z2_LXW:Z2_K
+NEXT
+Z2_AG_LEXWORDS = Z2_LEXWORDS
+
+@Z2_STUFF_FROM_AGAIN
+#DIM DYNAMIC Z2_K
+FOR Z2_K, 1, 60
+    Z2_LXD:Z2_K = Z2_AGD:Z2_K
+    Z2_LXW:Z2_K '= Z2_AGW:Z2_K
+NEXT
+Z2_LEXWORDS = Z2_AG_LEXWORDS
+
+@Z2_PARSER
+#DIM DYNAMIC Z2_PTR
+#DIM DYNAMIC Z2_WRD
+#DIM DYNAMIC Z2_VAL
+#DIM DYNAMIC Z2_VERB
+#DIM DYNAMIC Z2_OF_FLAG
+#DIM DYNAMIC Z2_OWINNER
+#DIM DYNAMIC Z2_OMERGED
+#DIM DYNAMIC Z2_LEN
+#DIM DYNAMIC Z2_DIR
+#DIM DYNAMIC Z2_NW
+#DIM DYNAMIC Z2_LW
+#DIM DYNAMIC Z2_CNT
+#DIM DYNAMIC Z2_K
+Z2_PTR = 1
+FOR Z2_CNT, 0, 10
+    SIF !Z2_P_OFLAG
+        Z2_OTBL:Z2_CNT = Z2_ITBL:Z2_CNT
+    Z2_ITBL:Z2_CNT = 0
+NEXT
+Z2_OWINNER = Z2_WINNER
+Z2_OMERGED = Z2_P_MERGED
+Z2_P_MERGED = 0
+Z2_P_END_ON_PREP = 0
+Z2_MT:MT_PRSO:0 = 0
+Z2_MT:MT_PRSI:0 = 0
+Z2_MT:MT_BUTS:0 = 0
+IF !Z2_QUOTE_FLAG && Z2_WINNER != O_ADVENTURER
+    Z2_WINNER = O_ADVENTURER
+    Z2_HERE = Z2_META_LOC(O_ADVENTURER)
+    CALL Z2_LITQ_OF, Z2_HERE, 1
+    Z2_LITQ = RESULT
+ENDIF
+IF Z2_RESERVE_PTR
+    Z2_PTR = Z2_RESERVE_PTR
+    FOR Z2_K, 1, 60
+        Z2_LXD:Z2_K = Z2_RSD:Z2_K
+        Z2_LXW:Z2_K '= Z2_RSW:Z2_K
+    NEXT
+    Z2_LEXWORDS = Z2_RS_LEXWORDS
+    SIF !Z2_SUPER_BRIEF && Z2_WINNER == O_ADVENTURER
+        PRINTL
+    Z2_RESERVE_PTR = 0
+    Z2_P_CONT = 0
+ELSEIF Z2_P_CONT
+    Z2_PTR = Z2_P_CONT
+    SIF !Z2_SUPER_BRIEF && Z2_WINNER == O_ADVENTURER && Z2_PRSA != V_SAY
+        PRINTL
+    Z2_P_CONT = 0
+ELSE
+    Z2_WINNER = O_ADVENTURER
+    Z2_QUOTE_FLAG = 0
+    SIF !Z2_ATTR:(Z2_PARENT:Z2_WINNER):F_VEHBIT
+        Z2_HERE = Z2_PARENT:Z2_WINNER
+    CALL Z2_LITQ_OF, Z2_HERE, 1
+    Z2_LITQ = RESULT
+    CALL Z2_READ_INPUT
+    SIF Z2_QUIT
+        RETURN 0
+ENDIF
+Z2_P_LEN = Z2_LEXWORDS
+IF Z2_P_LEN == 0
+    PRINTL I beg your pardon?
+    RETURN 0
+ENDIF
+Z2_WRD = Z2_LXD:Z2_PTR
+IF Z2_WRD == W_OOPS
+    IF Z2_LXD:(Z2_PTR + 1) == W_PERIOD || Z2_LXD:(Z2_PTR + 1) == W_COMMA
+        Z2_PTR += 1
+        Z2_P_LEN -= 1
+    ENDIF
+    IF Z2_P_LEN <= 1
+        PRINTL I can't help your clumsiness.
+        RETURN 0
+    ELSEIF Z2_OOPS_PTR
+        IF Z2_P_LEN > 2 && Z2_LXD:(Z2_PTR + 1) == W_QUOTE
+            PRINTL Sorry, you can't correct mistakes in quoted text.
+            RETURN 0
+        ELSEIF Z2_P_LEN > 2
+            PRINTL Warning: only the first word after OOPS is used.
+        ENDIF
+        Z2_AGD:Z2_OOPS_PTR = Z2_LXD:(Z2_PTR + 1)
+        Z2_AGW:Z2_OOPS_PTR '= Z2_LXW:(Z2_PTR + 1)
+        Z2_WINNER = Z2_OWINNER
+        CALL Z2_STUFF_FROM_AGAIN
+        Z2_P_LEN = Z2_LEXWORDS
+        Z2_PTR = Z2_OOPS_START
+    ELSE
+        Z2_OOPS_ACTIVE = 0
+        PRINTL There was no word to replace!
+        RETURN 0
+    ENDIF
+ELSE
+    SIF Z2_WRD != W_AGAIN && Z2_WRD != W_G
+        Z2_P_NUMBER = 0
+    Z2_OOPS_ACTIVE = 0
+ENDIF
+IF Z2_LXD:Z2_PTR == W_AGAIN || Z2_LXD:Z2_PTR == W_G
+    IF Z2_AG_LEXWORDS == 0
+        PRINTL Beg pardon?
+        RETURN 0
+    ELSEIF Z2_P_OFLAG
+        PRINTL It's difficult to repeat fragments.
+        RETURN 0
+    ELSEIF !Z2_P_WON
+        PRINTL That would just repeat a mistake.
+        RETURN 0
+    ELSEIF Z2_P_LEN > 1
+        Z2_NW = Z2_LXD:(Z2_PTR + 1)
+        IF Z2_NW == W_PERIOD || Z2_NW == W_COMMA || Z2_NW == W_THEN || Z2_NW == W_AND
+            Z2_PTR += 2
+            Z2_LEXWORDS -= 2
+        ELSE
+            PRINTL I couldn't understand that sentence.
+            RETURN 0
+        ENDIF
+    ELSE
+        Z2_PTR += 1
+        Z2_LEXWORDS -= 1
+    ENDIF
+    IF Z2_LEXWORDS > 0
+        FOR Z2_K, 1, 60
+            Z2_RSD:Z2_K = Z2_LXD:Z2_K
+            Z2_RSW:Z2_K '= Z2_LXW:Z2_K
+        NEXT
+        Z2_RS_LEXWORDS = Z2_LEXWORDS
+        Z2_RESERVE_PTR = Z2_PTR
+    ELSE
+        Z2_RESERVE_PTR = 0
+    ENDIF
+    Z2_WINNER = Z2_OWINNER
+    Z2_P_MERGED = Z2_OMERGED
+    CALL Z2_STUFF_FROM_AGAIN
+    Z2_DIR = Z2_AGAIN_DIR
+    FOR Z2_CNT, 0, 10
+        Z2_ITBL:Z2_CNT = Z2_OTBL:Z2_CNT
+    NEXT
+ELSE
+    CALL Z2_STUFF_TO_AGAIN
+    Z2_OOPS_START = Z2_PTR
+    Z2_RESERVE_PTR = 0
+    Z2_LEN = Z2_P_LEN
+    Z2_P_NCN = 0
+    Z2_P_GETFLAGS = 0
+    WHILE 1
+        Z2_P_LEN -= 1
+        IF Z2_P_LEN < 0
+            Z2_QUOTE_FLAG = 0
+            BREAK
+        ENDIF
+        CALL Z2_WORD_AT, Z2_PTR
+        Z2_WRD = RESULT
+        IF !Z2_WRD
+            CALL Z2_UNKNOWN_WORD, Z2_PTR
+            RETURN 0
+        ENDIF
+        IF Z2_P_LEN == 0
+            Z2_NW = 0
+        ELSE
+            Z2_NW = Z2_LXD:(Z2_PTR + 1)
+        ENDIF
+        IF Z2_WRD == W_TO && Z2_VERB == ACT_TELL
+            Z2_WRD = W_QUOTE
+        ELSEIF Z2_WRD == W_THEN && Z2_P_LEN > 0 && !Z2_VERB && !Z2_QUOTE_FLAG
+            IF Z2_LW == 0 || Z2_LW == W_PERIOD
+                Z2_WRD = W_THE
+            ELSE
+                Z2_ITBL:P_VERB = ACT_TELL
+                Z2_ITBL:P_VERBN = 0
+                Z2_WRD = W_QUOTE
+            ENDIF
+        ENDIF
+        Z2_VAL = Z2_WT(Z2_WRD, PS_DIRECTION, P1_DIRECTION)
+        IF Z2_WRD == W_THEN || Z2_WRD == W_PERIOD || Z2_WRD == W_QUOTE
+            SIF Z2_WRD == W_QUOTE
+                Z2_QUOTE_FLAG = !Z2_QUOTE_FLAG
+            SIF Z2_P_LEN != 0
+                Z2_P_CONT = Z2_PTR + 1
+            Z2_LEXWORDS = Z2_P_LEN
+            BREAK
+        ELSEIF Z2_VAL && (Z2_VERB == 0 || Z2_VERB == ACT_WALK) && (Z2_LEN == 1 || (Z2_LEN == 2 && Z2_VERB == ACT_WALK) || ((Z2_NW == W_THEN || Z2_NW == W_PERIOD || Z2_NW == W_QUOTE) && Z2_LEN >= 2) || (Z2_QUOTE_FLAG && Z2_LEN == 2 && Z2_NW == W_QUOTE) || (Z2_LEN > 2 && (Z2_NW == W_COMMA || Z2_NW == W_AND)))
+            Z2_DIR = Z2_VAL
+            SIF Z2_NW == W_COMMA || Z2_NW == W_AND
+                Z2_LXD:(Z2_PTR + 1) = W_THEN
+            IF Z2_LEN <= 2
+                Z2_QUOTE_FLAG = 0
+                BREAK
+            ENDIF
+        ELSEIF Z2_WT(Z2_WRD, PS_VERB, P1_VERB) && !Z2_VERB
+            Z2_VERB = Z2_WT(Z2_WRD, PS_VERB, P1_VERB)
+            Z2_ITBL:P_VERB = Z2_VERB
+            Z2_ITBL:P_VERBN = 1
+            Z2_VTBL_W = Z2_WRD
+            Z2_VTBL_T '= Z2_LXW:Z2_PTR
+        ELSEIF Z2_WT(Z2_WRD, PS_PREPOSITION, 0) || Z2_WRD == W_ALL || Z2_WRD == W_ONE || Z2_WT(Z2_WRD, PS_ADJECTIVE) || Z2_WT(Z2_WRD, PS_OBJECT)
+            Z2_VAL = Z2_WT(Z2_WRD, PS_PREPOSITION, 0)
+            IF Z2_P_LEN > 1 && Z2_NW == W_OF && Z2_VAL == 0 && Z2_WRD != W_ALL && Z2_WRD != W_ONE && Z2_WRD != W_A
+                Z2_OF_FLAG = 1
+            ELSEIF Z2_VAL != 0 && (Z2_P_LEN == 0 || Z2_NW == W_THEN || Z2_NW == W_PERIOD)
+                Z2_P_END_ON_PREP = 1
+                IF Z2_P_NCN < 2
+                    Z2_ITBL:P_PREP1 = Z2_VAL
+                    Z2_ITBL:P_PREP1N = Z2_WRD
+                ENDIF
+            ELSEIF Z2_P_NCN == 2
+                PRINTL There were too many nouns in that sentence.
+                RETURN 0
+            ELSE
+                Z2_P_NCN += 1
+                Z2_P_ACT = Z2_VERB
+                CALL Z2_CLAUSE, Z2_PTR, Z2_VAL, Z2_WRD
+                SIF RESULT == 0
+                    RETURN 0
+                Z2_PTR = RESULT
+                IF Z2_PTR < 0
+                    Z2_QUOTE_FLAG = 0
+                    BREAK
+                ENDIF
+            ENDIF
+        ELSEIF Z2_WRD == W_OF
+            IF !Z2_OF_FLAG || Z2_NW == W_PERIOD || Z2_NW == W_THEN
+                CALL Z2_CANT_USE, Z2_PTR
+                RETURN 0
+            ELSE
+                Z2_OF_FLAG = 0
+            ENDIF
+        ELSEIF Z2_WT(Z2_WRD, PS_BUZZ)
+        ELSEIF Z2_VERB == ACT_TELL && Z2_WT(Z2_WRD, PS_VERB, P1_VERB) && Z2_WINNER == O_ADVENTURER
+            PRINTL Please consult your manual for the correct way to talk to other people
+            PRINTL or creatures.
+            RETURN 0
+        ELSE
+            CALL Z2_CANT_USE, Z2_PTR
+            RETURN 0
+        ENDIF
+        Z2_LW = Z2_WRD
+        Z2_PTR += 1
+    WEND
+ENDIF
+Z2_OOPS_PTR = 0
+IF Z2_DIR
+    Z2_PRSA = V_WALK
+    Z2_PRSO = Z2_DIR
+    Z2_P_OFLAG = 0
+    Z2_P_WALK_DIR = Z2_DIR
+    Z2_AGAIN_DIR = Z2_DIR
+    RETURN 1
+ENDIF
+SIF Z2_P_OFLAG
+    CALL Z2_ORPHAN_MERGE
+Z2_P_WALK_DIR = 0
+Z2_AGAIN_DIR = 0
+CALL Z2_SYNTAX_CHECK
+SIF !RESULT
+    RETURN 0
+CALL Z2_SNARF_OBJECTS
+SIF !RESULT
+    RETURN 0
+CALL Z2_MANY_CHECK
+SIF !RESULT
+    RETURN 0
+CALL Z2_TAKE_CHECK
+SIF !RESULT
+    RETURN 0
+RETURN 1
+
+; CLAUSE (PTR VAL WRD): returns the last position of the clause, -1 at the
+; end of the input, 0 on failure. Positions start at 1 so 0 stays false.
+@Z2_CLAUSE(Z2_PTR, Z2_VAL, Z2_WRD)
+#DIM DYNAMIC Z2_PTR
+#DIM DYNAMIC Z2_VAL
+#DIM DYNAMIC Z2_WRD
+#DIM DYNAMIC Z2_OFF
+#DIM DYNAMIC Z2_NUM
+#DIM DYNAMIC Z2_ANDFLG
+#DIM DYNAMIC Z2_FIRSTQ
+#DIM DYNAMIC Z2_NW
+Z2_FIRSTQ = 1
+Z2_OFF = (Z2_P_NCN - 1) * 2
+IF Z2_VAL != 0
+    Z2_NUM = P_PREP1 + Z2_OFF
+    Z2_ITBL:Z2_NUM = Z2_VAL
+    Z2_ITBL:(Z2_NUM + 1) = Z2_WRD
+    Z2_PTR += 1
+ELSE
+    Z2_P_LEN += 1
+ENDIF
+IF Z2_P_LEN == 0
+    Z2_P_NCN -= 1
+    RETURN -1
+ENDIF
+Z2_NUM = P_NC1 + Z2_OFF
+Z2_ITBL:Z2_NUM = Z2_PTR
+SIF Z2_LXD:Z2_PTR == W_THE || Z2_LXD:Z2_PTR == W_A || Z2_LXD:Z2_PTR == W_AN
+    Z2_ITBL:Z2_NUM = Z2_PTR + 1
+WHILE 1
+    Z2_P_LEN -= 1
+    IF Z2_P_LEN < 0
+        Z2_ITBL:(Z2_NUM + 1) = Z2_PTR
+        RETURN -1
+    ENDIF
+    CALL Z2_WORD_AT, Z2_PTR
+    Z2_WRD = RESULT
+    IF !Z2_WRD
+        CALL Z2_UNKNOWN_WORD, Z2_PTR
+        RETURN 0
+    ENDIF
+    IF Z2_P_LEN == 0
+        Z2_NW = 0
+    ELSE
+        Z2_NW = Z2_LXD:(Z2_PTR + 1)
+    ENDIF
+    IF Z2_WRD == W_AND || Z2_WRD == W_COMMA
+        Z2_ANDFLG = 1
+    ELSEIF Z2_WRD == W_ALL || Z2_WRD == W_ONE
+        IF Z2_NW == W_OF
+            Z2_P_LEN -= 1
+            Z2_PTR += 1
+        ENDIF
+    ELSEIF Z2_WRD == W_THEN || Z2_WRD == W_PERIOD || (Z2_WT(Z2_WRD, PS_PREPOSITION) && Z2_ITBL:P_VERB && !Z2_FIRSTQ)
+        Z2_P_LEN += 1
+        Z2_ITBL:(Z2_NUM + 1) = Z2_PTR
+        RETURN Z2_PTR - 1
+    ELSEIF Z2_WT(Z2_WRD, PS_OBJECT)
+        IF Z2_P_LEN > 0 && Z2_NW == W_OF && Z2_WRD != W_ALL && Z2_WRD != W_ONE
+        ELSEIF Z2_WT(Z2_WRD, PS_ADJECTIVE, P1_ADJECTIVE) && Z2_NW != 0 && Z2_WT(Z2_NW, PS_OBJECT)
+        ELSEIF !Z2_ANDFLG && Z2_NW != W_BUT && Z2_NW != W_EXCEPT && Z2_NW != W_AND && Z2_NW != W_COMMA
+            Z2_ITBL:(Z2_NUM + 1) = Z2_PTR + 1
+            RETURN Z2_PTR
+        ELSE
+            Z2_ANDFLG = 0
+        ENDIF
+    ELSEIF (Z2_P_MERGED || Z2_P_OFLAG || Z2_ITBL:P_VERB != 0) && (Z2_WT(Z2_WRD, PS_ADJECTIVE) || Z2_WT(Z2_WRD, PS_BUZZ))
+    ELSEIF Z2_ANDFLG && (Z2_WT(Z2_WRD, PS_DIRECTION) || Z2_WT(Z2_WRD, PS_VERB))
+        Z2_PTR -= 2
+        Z2_LXD:(Z2_PTR + 1) = W_THEN
+        Z2_P_LEN += 2
+    ELSEIF Z2_WT(Z2_WRD, PS_PREPOSITION)
+    ELSE
+        CALL Z2_CANT_USE, Z2_PTR
+        RETURN 0
+    ENDIF
+    Z2_FIRSTQ = 0
+    Z2_PTR += 1
+WEND
+
+@Z2_UNKNOWN_WORD(Z2_PTR)
+#DIM DYNAMIC Z2_PTR
+Z2_OOPS_PTR = Z2_PTR
+IF Z2_PRSA == V_SAY
+    PRINTL Nothing happens.
+    RETURN 0
+ENDIF
+PRINTFORML I don't know the word "%Z2_LXW:Z2_PTR%".
+Z2_QUOTE_FLAG = 0
+Z2_P_OFLAG = 0
+RETURN 0
+
+@Z2_CANT_USE(Z2_PTR)
+#DIM DYNAMIC Z2_PTR
+IF Z2_PRSA == V_SAY
+    PRINTL Nothing happens.
+    RETURN 0
+ENDIF
+PRINTFORML You used the word "%Z2_LXW:Z2_PTR%" in a way that I don't understand.
+Z2_QUOTE_FLAG = 0
+Z2_P_OFLAG = 0
+RETURN 0
+
+; The verb as typed (WORD-PRINT of P-VTBL) or its dictionary form (PRINTB).
+@Z2_VERB_TEXT
+#FUNCTIONS
+SIF Z2_VTBL_T != ""
+    RETURNF Z2_VTBL_T
+RETURNF Z2_DW:Z2_VTBL_W
+
+@Z2_SYNTAX_CHECK
+#DIM DYNAMIC Z2_LEN
+#DIM DYNAMIC Z2_NUM
+#DIM DYNAMIC Z2_OBJ
+#DIM DYNAMIC Z2_DRIVE1
+#DIM DYNAMIC Z2_DRIVE2
+#DIM DYNAMIC Z2_PREP
+#DIM DYNAMIC Z2_VERB
+#DIM DYNAMIC Z2_J
+Z2_DRIVE1 = -1
+Z2_DRIVE2 = -1
+Z2_VERB = Z2_ITBL:P_VERB
+IF Z2_VERB == 0
+    PRINTL There was no verb in that sentence!
+    RETURN 0
+ENDIF
+Z2_LEN = Z2_VL_N:Z2_VERB
+Z2_J = 0
+WHILE 1
+    Z2_NUM = Z2_VL_OBJECTS:Z2_VERB:Z2_J & 3
+    IF Z2_P_NCN > Z2_NUM
+    ELSEIF Z2_NUM >= 1 && Z2_P_NCN == 0 && (Z2_ITBL:P_PREP1 == 0 || Z2_ITBL:P_PREP1 == Z2_VL_PREP1:Z2_VERB:Z2_J)
+        Z2_DRIVE1 = Z2_J
+    ELSEIF Z2_VL_PREP1:Z2_VERB:Z2_J == Z2_ITBL:P_PREP1
+        IF Z2_NUM == 2 && Z2_P_NCN == 1
+            Z2_DRIVE2 = Z2_J
+        ELSEIF Z2_VL_PREP2:Z2_VERB:Z2_J == Z2_ITBL:P_PREP2
+            CALL Z2_SYNTAX_FOUND, Z2_VERB, Z2_J
+            RETURN 1
+        ENDIF
+    ENDIF
+    Z2_LEN -= 1
+    IF Z2_LEN < 1
+        SIF Z2_DRIVE1 >= 0 || Z2_DRIVE2 >= 0
+            BREAK
+        PRINTL That sentence isn't one I recognize.
+        RETURN 0
+    ENDIF
+    Z2_J += 1
+WEND
+Z2_OBJ = 0
+IF Z2_DRIVE1 >= 0
+    CALL Z2_GWIM, Z2_VL_FIND1:Z2_VERB:Z2_DRIVE1, Z2_VL_LOC1:Z2_VERB:Z2_DRIVE1, Z2_VL_PREP1:Z2_VERB:Z2_DRIVE1
+    Z2_OBJ = RESULT
+    IF Z2_OBJ
+        Z2_MT:MT_PRSO:0 = 1
+        Z2_MT:MT_PRSO:1 = Z2_OBJ
+        CALL Z2_SYNTAX_FOUND, Z2_VERB, Z2_DRIVE1
+        RETURN 1
+    ENDIF
+ENDIF
+IF Z2_DRIVE2 >= 0
+    CALL Z2_GWIM, Z2_VL_FIND2:Z2_VERB:Z2_DRIVE2, Z2_VL_LOC2:Z2_VERB:Z2_DRIVE2, Z2_VL_PREP2:Z2_VERB:Z2_DRIVE2
+    Z2_OBJ = RESULT
+    IF Z2_OBJ
+        Z2_MT:MT_PRSI:0 = 1
+        Z2_MT:MT_PRSI:1 = Z2_OBJ
+        CALL Z2_SYNTAX_FOUND, Z2_VERB, Z2_DRIVE2
+        RETURN 1
+    ENDIF
+ENDIF
+IF Z2_VERB == ACT_FIND
+    PRINTL That question can't be answered.
+    RETURN 0
+ELSEIF Z2_WINNER != O_ADVENTURER
+    PRINTL "I don't understand! What are you referring to?"
+    RETURN 0
+ENDIF
+CALL Z2_ORPHAN, Z2_DRIVE1, Z2_DRIVE2, Z2_VERB
+PRINTS "What do you want to "
+IF Z2_OTBL:P_VERBN == 0
+    PRINTS "tell"
+ELSE
+    PRINTFORM %Z2_VERB_TEXT()%
+    Z2_VTBL_T '= ""
+ENDIF
+IF Z2_DRIVE2 >= 0
+    PRINTS " "
+    CALL Z2_BUFFER_PRINT, Z2_ITBL:P_NC1, Z2_ITBL:P_NC1L, 1
+ENDIF
+Z2_P_OFLAG = 1
+IF Z2_DRIVE1 >= 0
+    CALL Z2_PREP_PRINT, Z2_VL_PREP1:Z2_VERB:Z2_DRIVE1
+ELSE
+    CALL Z2_PREP_PRINT, Z2_VL_PREP2:Z2_VERB:Z2_DRIVE2
+ENDIF
+PRINTL ?
+RETURN 0
+
+; ORPHAN (D1 D2): D1/D2 are syntax line indices (-1 = none).
+@Z2_ORPHAN(Z2_D1, Z2_D2, Z2_VERB)
+#DIM DYNAMIC Z2_D1
+#DIM DYNAMIC Z2_D2
+#DIM DYNAMIC Z2_VERB
+#DIM DYNAMIC Z2_CNT
+SIF !Z2_P_MERGED
+    Z2_OCL_N = 0
+Z2_OVTBL_W = Z2_VTBL_W
+Z2_OVTBL_T '= Z2_VTBL_T
+FOR Z2_CNT, 0, 10
+    Z2_OTBL:Z2_CNT = Z2_ITBL:Z2_CNT
+NEXT
+SIF Z2_P_NCN == 2
+    CALL Z2_CLAUSE_COPY, 0, P_NC2, P_NC2L, P_NC2, P_NC2L, 0
+SIF Z2_P_NCN >= 1
+    CALL Z2_CLAUSE_COPY, 0, P_NC1, P_NC1L, P_NC1, P_NC1L, 0
+IF Z2_D1 >= 0
+    Z2_OTBL:P_PREP1 = Z2_VL_PREP1:Z2_VERB:Z2_D1
+    Z2_OTBL:P_NC1 = 1
+ELSEIF Z2_D2 >= 0
+    Z2_OTBL:P_PREP2 = Z2_VL_PREP2:Z2_VERB:Z2_D2
+    Z2_OTBL:P_NC2 = 1
+ENDIF
+
+; BUFFER-PRINT (BEG END CP)
+@Z2_BUFFER_PRINT(Z2_BEG, Z2_END, Z2_CP)
+#DIM DYNAMIC Z2_BEG
+#DIM DYNAMIC Z2_END
+#DIM DYNAMIC Z2_CP
+#DIM DYNAMIC Z2_NOSP
+#DIM DYNAMIC Z2_WRD
+#DIM DYNAMIC Z2_FIRSTQ
+#DIM DYNAMIC Z2_PN
+Z2_NOSP = 1
+Z2_FIRSTQ = 1
+WHILE Z2_BEG != Z2_END
+    Z2_WRD = Z2_LXD:Z2_BEG
+    IF Z2_WRD == W_COMMA
+        PRINTS ", "
+    ELSEIF Z2_NOSP
+        Z2_NOSP = 0
+    ELSE
+        PRINTS " "
+    ENDIF
+    IF Z2_WRD == W_PERIOD || Z2_WRD == W_COMMA
+        Z2_NOSP = 1
+    ELSEIF Z2_WRD == W_ME
+        PRINTFORM %Z2_NAME:O_ME%
+        Z2_PN = 1
+    ELSEIF Z2_WRD == W_INTNUM
+        PRINTFORM {Z2_P_NUMBER}
+        Z2_PN = 1
+    ELSE
+        SIF Z2_FIRSTQ && !Z2_PN && Z2_CP
+            PRINTS "the "
+        IF Z2_P_OFLAG || Z2_P_MERGED
+            PRINTFORM %Z2_DW:Z2_WRD%
+        ELSEIF Z2_WRD == W_IT && Z2_ACCESSIBLE(Z2_P_IT_OBJECT)
+            PRINTFORM %Z2_NAME:Z2_P_IT_OBJECT%
+        ELSE
+            PRINTFORM %Z2_LXW:Z2_BEG%
+        ENDIF
+        Z2_FIRSTQ = 0
+    ENDIF
+    Z2_BEG += 1
+WEND
+
+@Z2_PREP_PRINT(Z2_PREP)
+#DIM DYNAMIC Z2_PREP
+IF Z2_PREP != 0
+    PRINTS " " + Z2_PREP_WORD:Z2_PREP
+ENDIF
+
+; CLAUSE-COPY: SRC 0 = P-ITBL, 1 = P-OTBL; DEST is always P-OTBL here.
+@Z2_CLAUSE_COPY(Z2_SRC, Z2_SB, Z2_SE, Z2_DB, Z2_DE, Z2_INSRT)
+#DIM DYNAMIC Z2_SRC
+#DIM DYNAMIC Z2_SB
+#DIM DYNAMIC Z2_SE
+#DIM DYNAMIC Z2_DB
+#DIM DYNAMIC Z2_DE
+#DIM DYNAMIC Z2_INSRT
+#DIM DYNAMIC Z2_BEG
+#DIM DYNAMIC Z2_END
+IF Z2_SRC == 0
+    Z2_BEG = Z2_ITBL:Z2_SB
+    Z2_END = Z2_ITBL:Z2_SE
+ELSE
+    Z2_BEG = Z2_OTBL:Z2_SB
+    Z2_END = Z2_OTBL:Z2_SE
+ENDIF
+Z2_OTBL:Z2_DB = 101 + Z2_OCL_N
+WHILE Z2_BEG != Z2_END
+    SIF Z2_INSRT && Z2_P_ANAM == Z2_LXD:Z2_BEG
+        CALL Z2_CLAUSE_ADD, Z2_INSRT
+    CALL Z2_CLAUSE_ADD, Z2_LXD:Z2_BEG
+    Z2_BEG += 1
+WEND
+Z2_OTBL:Z2_DE = 101 + Z2_OCL_N
+
+@Z2_CLAUSE_ADD(Z2_WRD)
+#DIM DYNAMIC Z2_WRD
+Z2_LXD:(101 + Z2_OCL_N) = Z2_WRD
+Z2_LXW:(101 + Z2_OCL_N) '= Z2_DW:Z2_WRD
+Z2_OCL_N += 1
+Z2_LXD:(101 + Z2_OCL_N) = 0
+
+@Z2_ORPHAN_MERGE
+#DIM DYNAMIC Z2_CNT
+#DIM DYNAMIC Z2_TEMP
+#DIM DYNAMIC Z2_VERB
+#DIM DYNAMIC Z2_BEG
+#DIM DYNAMIC Z2_END
+#DIM DYNAMIC Z2_AJ
+#DIM DYNAMIC Z2_WRD
+Z2_P_OFLAG = 0
+; <GET <GET P-ITBL P-VERBN> 0>: with no verb this reads the word at story
+; address 0, i.e. header bytes 0-1: the version (3) and Flags 1, which the
+; interpreter sets at start. The pinned oracle (dfrotz) sets Flags 1 to 0x20,
+; so the story reads "a word" at 0x0320 whose part-of-speech byte (0x0324,
+; the low byte of object 7's property address: never changes) is 0x28:
+; adjective + preposition. ADJ is then true. Z2_HDR_WORD_PS holds that byte
+; (checked against the story by tools/source_story_check.py); the earlier
+; port assumed 0x0300 and byte 0 (interpreter-dependent; found by the state
+; trace, round 6).
+Z2_WRD = 0
+SIF Z2_ITBL:P_VERBN
+    Z2_WRD = Z2_VTBL_W
+IF Z2_WRD == 0
+    Z2_AJ = (Z2_HDR_WORD_PS & PS_ADJECTIVE) != 0 || ((Z2_HDR_WORD_PS & PS_VERB) == 0 && Z2_OTBL:P_VERB == 0)
+ELSEIF Z2_WT(Z2_WRD, PS_VERB, P1_VERB) == Z2_OTBL:P_VERB || Z2_WT(Z2_WRD, PS_ADJECTIVE)
+    Z2_AJ = 1
+ELSEIF Z2_WT(Z2_WRD, PS_OBJECT, P1_OBJECT) && Z2_P_NCN == 0
+    Z2_ITBL:P_VERB = 0
+    Z2_ITBL:P_VERBN = 0
+    Z2_ITBL:P_NC1 = 1
+    Z2_ITBL:P_NC1L = 2
+    Z2_P_NCN = 1
+ENDIF
+Z2_VERB = Z2_ITBL:P_VERB
+IF Z2_VERB != 0 && !Z2_AJ && Z2_VERB != Z2_OTBL:P_VERB
+    RETURN 0
+ELSEIF Z2_P_NCN == 2
+    RETURN 0
+ELSEIF Z2_OTBL:P_NC1 == 1
+    Z2_TEMP = Z2_ITBL:P_PREP1
+    IF Z2_TEMP == Z2_OTBL:P_PREP1 || Z2_TEMP == 0
+        IF Z2_AJ
+            Z2_OTBL:P_NC1 = 1
+            SIF Z2_ITBL:P_NC1L == 0
+                Z2_ITBL:P_NC1L = 2
+            SIF Z2_P_NCN == 0
+                Z2_P_NCN = 1
+        ELSE
+            Z2_OTBL:P_NC1 = Z2_ITBL:P_NC1
+        ENDIF
+        Z2_OTBL:P_NC1L = Z2_ITBL:P_NC1L
+    ELSE
+        RETURN 0
+    ENDIF
+ELSEIF Z2_OTBL:P_NC2 == 1
+    Z2_TEMP = Z2_ITBL:P_PREP1
+    IF Z2_TEMP == Z2_OTBL:P_PREP2 || Z2_TEMP == 0
+        IF Z2_AJ
+            Z2_ITBL:P_NC1 = 1
+            SIF Z2_ITBL:P_NC1L == 0
+                Z2_ITBL:P_NC1L = 2
+        ENDIF
+        Z2_OTBL:P_NC2 = Z2_ITBL:P_NC1
+        Z2_OTBL:P_NC2L = Z2_ITBL:P_NC1L
+        Z2_P_NCN = 2
+    ELSE
+        RETURN 0
+    ENDIF
+ELSEIF Z2_P_ACLAUSE != 0
+    IF Z2_P_NCN != 1 && !Z2_AJ
+        Z2_P_ACLAUSE = 0
+        RETURN 0
+    ENDIF
+    Z2_BEG = Z2_ITBL:P_NC1
+    IF Z2_AJ
+        Z2_BEG = 1
+        Z2_AJ = 0
+    ENDIF
+    Z2_END = Z2_ITBL:P_NC1L
+    WHILE 1
+        Z2_WRD = Z2_LXD:Z2_BEG
+        IF Z2_BEG == Z2_END
+            IF Z2_AJ
+                CALL Z2_ACLAUSE_WIN, Z2_AJ
+                BREAK
+            ELSE
+                Z2_P_ACLAUSE = 0
+                RETURN 0
+            ENDIF
+        ELSEIF !Z2_AJ && ((Z2_DF:Z2_WRD & PS_ADJECTIVE) || Z2_WRD == W_ALL || Z2_WRD == W_ONE)
+            Z2_AJ = Z2_WRD
+        ELSEIF Z2_WRD == W_ONE
+            CALL Z2_ACLAUSE_WIN, Z2_AJ
+            BREAK
+        ELSEIF Z2_DF:Z2_WRD & PS_OBJECT
+            IF Z2_WRD == Z2_P_ANAM
+                CALL Z2_ACLAUSE_WIN, Z2_AJ
+            ELSE
+                CALL Z2_NCLAUSE_WIN
+            ENDIF
+            BREAK
+        ENDIF
+        Z2_BEG += 1
+        IF Z2_END == 0
+            Z2_END = Z2_BEG
+            Z2_P_NCN = 1
+            Z2_ITBL:P_NC1 = Z2_BEG - 1
+            Z2_ITBL:P_NC1L = Z2_BEG
+        ENDIF
+    WEND
+ENDIF
+Z2_VTBL_W = Z2_OVTBL_W
+Z2_VTBL_T '= ""
+Z2_OTBL:P_VERBN = 1
+FOR Z2_CNT, 0, 10
+    Z2_ITBL:Z2_CNT = Z2_OTBL:Z2_CNT
+NEXT
+Z2_P_MERGED = 1
+RETURN 1
+
+@Z2_ACLAUSE_WIN(Z2_AJ)
+#DIM DYNAMIC Z2_AJ
+Z2_ITBL:P_VERB = Z2_OTBL:P_VERB
+CALL Z2_CLAUSE_COPY, 1, Z2_P_ACLAUSE, Z2_P_ACLAUSE + 1, Z2_P_ACLAUSE, Z2_P_ACLAUSE + 1, Z2_AJ
+SIF Z2_OTBL:P_NC2 != 0
+    Z2_P_NCN = 2
+Z2_P_ACLAUSE = 0
+RETURN 1
+
+@Z2_NCLAUSE_WIN
+CALL Z2_CLAUSE_COPY, 0, P_NC1, P_NC1L, Z2_P_ACLAUSE, Z2_P_ACLAUSE + 1, 0
+SIF Z2_OTBL:P_NC2 != 0
+    Z2_P_NCN = 2
+Z2_P_ACLAUSE = 0
+RETURN 1
+
+@Z2_SYNTAX_FOUND(Z2_VERB, Z2_J)
+#DIM DYNAMIC Z2_VERB
+#DIM DYNAMIC Z2_J
+Z2_SYN_VERB = Z2_VERB
+Z2_SYN_LINE = Z2_J
+Z2_PRSA = Z2_VL_ACTION:Z2_VERB:Z2_J
+
+@Z2_SYN_GET(Z2_FIELD)
+#FUNCTION
+#DIM DYNAMIC Z2_FIELD
+SELECTCASE Z2_FIELD
+CASE 0
+    RETURNF Z2_VL_OBJECTS:Z2_SYN_VERB:Z2_SYN_LINE
+CASE 5
+    RETURNF Z2_VL_LOC1:Z2_SYN_VERB:Z2_SYN_LINE
+CASE 6
+    RETURNF Z2_VL_LOC2:Z2_SYN_VERB:Z2_SYN_LINE
+ENDSELECT
+RETURNF 0
+
+; GWIM (GBIT LBIT PREP)
+@Z2_GWIM(Z2_GBIT, Z2_LBIT, Z2_PREP)
+#DIM DYNAMIC Z2_GBIT
+#DIM DYNAMIC Z2_LBIT
+#DIM DYNAMIC Z2_PREP
+#DIM DYNAMIC Z2_OBJ
+SIF Z2_GBIT == F_RMUNGBIT
+    RETURN O_ROOMS
+Z2_P_GWIMBIT = Z2_GBIT
+Z2_P_SLOCBITS = Z2_LBIT
+Z2_MT:MT_MERGE:0 = 0
+CALL Z2_GET_OBJECT, MT_MERGE, 0
+IF RESULT
+    Z2_P_GWIMBIT = 0
+    IF Z2_MT:MT_MERGE:0 == 1
+        Z2_OBJ = Z2_MT:MT_MERGE:1
+        PRINTS "("
+        IF Z2_PREP != 0 && !Z2_P_END_ON_PREP
+            PRINTFORM %Z2_PREP_WORD:Z2_PREP%
+            SIF Z2_PREP_WORD:Z2_PREP == "out"
+                PRINTS " of"
+            PRINTS " "
+            IF Z2_OBJ == O_HANDS
+                PRINTS "your hands"
+            ELSE
+                PRINTFORM the %Z2_NAME:Z2_OBJ%
+            ENDIF
+            PRINTL )
+        ELSE
+            PRINTFORML %Z2_NAME:Z2_OBJ%)
+        ENDIF
+        RETURN Z2_OBJ
+    ENDIF
+    RETURN 0
+ENDIF
+Z2_P_GWIMBIT = 0
+RETURN 0
+
+@Z2_SNARF_OBJECTS
+#DIM DYNAMIC Z2_OPTR
+#DIM DYNAMIC Z2_IPTR
+#DIM DYNAMIC Z2_L
+Z2_MT:MT_BUTS:0 = 0
+Z2_IPTR = Z2_ITBL:P_NC2
+IF Z2_IPTR != 0
+    Z2_P_SLOCBITS = Z2_SYN_GET(6)
+    CALL Z2_SNARFEM, Z2_IPTR, Z2_ITBL:P_NC2L, MT_PRSI
+    SIF !RESULT
+        RETURN 0
+ENDIF
+Z2_OPTR = Z2_ITBL:P_NC1
+IF Z2_OPTR != 0
+    Z2_P_SLOCBITS = Z2_SYN_GET(5)
+    CALL Z2_SNARFEM, Z2_OPTR, Z2_ITBL:P_NC1L, MT_PRSO
+    SIF !RESULT
+        RETURN 0
+ENDIF
+IF Z2_MT:MT_BUTS:0 != 0
+    Z2_L = Z2_MT:MT_PRSO:0
+    SIF Z2_OPTR
+        CALL Z2_BUT_MERGE, MT_PRSO
+    SIF Z2_IPTR && (!Z2_OPTR || Z2_L == Z2_MT:MT_PRSO:0)
+        CALL Z2_BUT_MERGE, MT_PRSI
+ENDIF
+RETURN 1
+
+; BUT-MERGE: the original swaps the P-MERGE buffer in; the result is copied
+; back into the same table here (same contents).
+@Z2_BUT_MERGE(Z2_TBL)
+#DIM DYNAMIC Z2_TBL
+#DIM DYNAMIC Z2_K
+#DIM DYNAMIC Z2_M
+#DIM DYNAMIC Z2_OBJ
+Z2_M = 0
+FOR Z2_K, 1, Z2_MT:Z2_TBL:0 + 1
+    Z2_OBJ = Z2_MT:Z2_TBL:Z2_K
+    IF !Z2_ZMEMQ(Z2_OBJ, MT_BUTS)
+        Z2_M += 1
+        Z2_MT:MT_MERGE:Z2_M = Z2_OBJ
+    ENDIF
+NEXT
+FOR Z2_K, 1, Z2_M + 1
+    Z2_MT:Z2_TBL:Z2_K = Z2_MT:MT_MERGE:Z2_K
+NEXT
+Z2_MT:Z2_TBL:0 = Z2_M
+
+@Z2_ZMEMQ(Z2_ITM, Z2_TBL)
+#FUNCTION
+#DIM DYNAMIC Z2_ITM
+#DIM DYNAMIC Z2_TBL
+#DIM DYNAMIC Z2_K
+FOR Z2_K, 1, Z2_MT:Z2_TBL:0 + 1
+    SIF Z2_MT:Z2_TBL:Z2_K == Z2_ITM
+        RETURNF 1
+NEXT
+RETURNF 0
+
+; SNARFEM (PTR EPTR TBL). BUT: the P-BUTS table, else TBL.
+@Z2_SNARFEM(Z2_PTR, Z2_EPTR, Z2_TBL)
+#DIM DYNAMIC Z2_PTR
+#DIM DYNAMIC Z2_EPTR
+#DIM DYNAMIC Z2_TBL
+#DIM DYNAMIC Z2_BUT
+#DIM DYNAMIC Z2_WV
+#DIM DYNAMIC Z2_WRD
+#DIM DYNAMIC Z2_NW
+#DIM DYNAMIC Z2_WAS_ALL
+#DIM DYNAMIC Z2_T
+Z2_P_AND = 0
+SIF Z2_P_GETFLAGS == P_ALL
+    Z2_WAS_ALL = 1
+Z2_P_GETFLAGS = 0
+Z2_MT:Z2_TBL:0 = 0
+Z2_WRD = Z2_LXD:Z2_PTR
+WHILE 1
+    Z2_T = Z2_TBL
+    SIF Z2_BUT
+        Z2_T = MT_BUTS
+    IF Z2_PTR == Z2_EPTR
+        CALL Z2_GET_OBJECT, Z2_T, 1
+        Z2_WV = RESULT
+        SIF Z2_WAS_ALL
+            Z2_P_GETFLAGS = P_ALL
+        RETURN Z2_WV
+    ENDIF
+    IF Z2_EPTR == Z2_PTR + 1
+        Z2_NW = 0
+    ELSE
+        Z2_NW = Z2_LXD:(Z2_PTR + 1)
+    ENDIF
+    IF Z2_WRD == W_ALL
+        Z2_P_GETFLAGS = P_ALL
+        SIF Z2_NW == W_OF
+            Z2_PTR += 1
+    ELSEIF Z2_WRD == W_BUT || Z2_WRD == W_EXCEPT
+        CALL Z2_GET_OBJECT, Z2_T, 1
+        SIF !RESULT
+            RETURN 0
+        Z2_BUT = 1
+        Z2_MT:MT_BUTS:0 = 0
+    ELSEIF Z2_WRD == W_A || Z2_WRD == W_ONE
+        IF !Z2_P_ADJ
+            Z2_P_GETFLAGS = P_ONE
+            SIF Z2_NW == W_OF
+                Z2_PTR += 1
+        ELSE
+            Z2_P_NAM = Z2_P_ONEOBJ
+            CALL Z2_GET_OBJECT, Z2_T, 1
+            SIF !RESULT
+                RETURN 0
+            SIF Z2_NW == 0
+                RETURN 1
+        ENDIF
+    ELSEIF (Z2_WRD == W_AND || Z2_WRD == W_COMMA) && Z2_NW != W_AND && Z2_NW != W_COMMA
+        Z2_P_AND = 1
+        CALL Z2_GET_OBJECT, Z2_T, 1
+        SIF !RESULT
+            RETURN 0
+    ELSEIF Z2_WT(Z2_WRD, PS_BUZZ)
+    ELSEIF Z2_WRD == W_AND || Z2_WRD == W_COMMA
+    ELSEIF Z2_WRD == W_OF
+        SIF Z2_P_GETFLAGS == 0
+            Z2_P_GETFLAGS = P_INHIBIT
+    ELSEIF Z2_WT(Z2_WRD, PS_ADJECTIVE, P1_ADJECTIVE) && !Z2_P_ADJ
+        Z2_P_ADJ = Z2_WT(Z2_WRD, PS_ADJECTIVE, P1_ADJECTIVE)
+        Z2_P_ADJN = Z2_WRD
+    ELSEIF Z2_WT(Z2_WRD, PS_OBJECT, P1_OBJECT)
+        Z2_P_NAM = Z2_WRD
+        Z2_P_ONEOBJ = Z2_WRD
+    ENDIF
+    IF Z2_PTR != Z2_EPTR
+        Z2_PTR += 1
+        Z2_WRD = Z2_NW
+    ENDIF
+WEND
+
+; GET-OBJECT (TBL VRB)
+@Z2_GET_OBJECT(Z2_TBL, Z2_VRB)
+#DIM DYNAMIC Z2_TBL
+#DIM DYNAMIC Z2_VRB
+#DIM DYNAMIC Z2_LEN
+#DIM DYNAMIC Z2_XBITS
+#DIM DYNAMIC Z2_TLEN
+#DIM DYNAMIC Z2_GCHECK
+#DIM DYNAMIC Z2_OLEN
+#DIM DYNAMIC Z2_K
+Z2_XBITS = Z2_P_SLOCBITS
+Z2_TLEN = Z2_MT:Z2_TBL:0
+SIF Z2_P_GETFLAGS & P_INHIBIT
+    RETURN 1
+IF !Z2_P_NAM && Z2_P_ADJ
+    IF Z2_WT(Z2_P_ADJN, PS_OBJECT, P1_OBJECT)
+        Z2_P_NAM = Z2_P_ADJN
+        Z2_P_ADJ = 0
+    ENDIF
+ENDIF
+IF !Z2_P_NAM && !Z2_P_ADJ && Z2_P_GETFLAGS != P_ALL && Z2_P_GWIMBIT == 0
+    SIF Z2_VRB
+        PRINTL There seems to be a noun missing in that sentence!
+    RETURN 0
+ENDIF
+SIF Z2_P_GETFLAGS != P_ALL || Z2_P_SLOCBITS == 0
+    Z2_P_SLOCBITS = -1
+Z2_P_TABLE = Z2_TBL
+WHILE 1
+    IF Z2_GCHECK
+        CALL Z2_GLOBAL_CHECK, Z2_TBL
+    ELSE
+        IF Z2_LITQ
+            Z2_ATTR:O_ADVENTURER:F_TRANSBIT = 0
+            CALL Z2_DO_SL, Z2_HERE, S_SOG, S_SIR
+            Z2_ATTR:O_ADVENTURER:F_TRANSBIT = 1
+        ENDIF
+        CALL Z2_DO_SL, O_ADVENTURER, S_SH, S_SC
+    ENDIF
+    Z2_LEN = Z2_MT:Z2_TBL:0 - Z2_TLEN
+    IF Z2_P_GETFLAGS & P_ALL
+    ELSEIF (Z2_P_GETFLAGS & P_ONE) && Z2_LEN != 0
+        IF Z2_LEN != 1
+            Z2_MT:Z2_TBL:1 = Z2_MT:Z2_TBL:(Z2_RANDOM(Z2_LEN))
+            PRINTFORML (How about the %Z2_NAME:(Z2_MT:Z2_TBL:1)%?)
+        ENDIF
+        Z2_MT:Z2_TBL:0 = 1
+    ELSEIF Z2_LEN > 1 || (Z2_LEN == 0 && Z2_P_SLOCBITS != -1)
+        IF Z2_P_SLOCBITS == -1
+            Z2_P_SLOCBITS = Z2_XBITS
+            Z2_OLEN = Z2_LEN
+            Z2_MT:Z2_TBL:0 -= Z2_LEN
+            CONTINUE
+        ENDIF
+        SIF Z2_LEN == 0
+            Z2_LEN = Z2_OLEN
+        IF Z2_WINNER != O_ADVENTURER
+            PRINTL "I don't understand! What are you referring to?"
+            RETURN 0
+        ELSEIF Z2_VRB && Z2_P_NAM
+            CALL Z2_WHICH_PRINT, Z2_TLEN, Z2_LEN, Z2_TBL
+            IF Z2_TBL == MT_PRSO
+                Z2_P_ACLAUSE = P_NC1
+            ELSE
+                Z2_P_ACLAUSE = P_NC2
+            ENDIF
+            Z2_P_AADJ = Z2_P_ADJ
+            Z2_P_ANAM = Z2_P_NAM
+            CALL Z2_ORPHAN, -1, -1, 0
+            Z2_P_OFLAG = 1
+        ELSEIF Z2_VRB
+            PRINTL There seems to be a noun missing in that sentence!
+        ENDIF
+        Z2_P_NAM = 0
+        Z2_P_ADJ = 0
+        RETURN 0
+    ENDIF
+    IF Z2_LEN == 0 && Z2_GCHECK
+        IF Z2_VRB
+            Z2_P_SLOCBITS = Z2_XBITS
+            IF Z2_LITQ || Z2_PRSA == V_TELL
+                CALL Z2_OBJ_FOUND, O_NOT_HERE_OBJECT, Z2_TBL
+                Z2_P_XNAM = Z2_P_NAM
+                Z2_P_XADJ = Z2_P_ADJ
+                Z2_P_XADJN = Z2_P_ADJN
+                Z2_P_NAM = 0
+                Z2_P_ADJ = 0
+                Z2_P_ADJN = 0
+                RETURN 1
+            ELSE
+                PRINTL It's too dark to see!
+            ENDIF
+        ENDIF
+        Z2_P_NAM = 0
+        Z2_P_ADJ = 0
+        RETURN 0
+    ELSEIF Z2_LEN == 0
+        Z2_GCHECK = 1
+        CONTINUE
+    ENDIF
+    Z2_P_SLOCBITS = Z2_XBITS
+    Z2_P_NAM = 0
+    Z2_P_ADJ = 0
+    RETURN 1
+WEND
+
+@Z2_WHICH_PRINT(Z2_TLEN, Z2_LEN, Z2_TBL)
+#DIM DYNAMIC Z2_TLEN
+#DIM DYNAMIC Z2_LEN
+#DIM DYNAMIC Z2_TBL
+#DIM DYNAMIC Z2_RLEN
+Z2_RLEN = Z2_LEN
+PRINTS "Which "
+IF Z2_P_OFLAG || Z2_P_MERGED || Z2_P_AND
+    IF Z2_P_NAM
+        PRINTFORM %Z2_DW:Z2_P_NAM%
+    ELSEIF Z2_P_ADJ
+        PRINTFORM %Z2_DW:Z2_P_ADJN%
+    ELSE
+        PRINTS "one"
+    ENDIF
+ELSEIF Z2_TBL == MT_PRSO
+    CALL Z2_BUFFER_PRINT, Z2_ITBL:P_NC1, Z2_ITBL:P_NC1L, 0
+ELSE
+    CALL Z2_BUFFER_PRINT, Z2_ITBL:P_NC2, Z2_ITBL:P_NC2L, 0
+ENDIF
+PRINTS " do you mean, "
+WHILE 1
+    Z2_TLEN += 1
+    PRINTFORM the %Z2_NAME:(Z2_MT:Z2_TBL:Z2_TLEN)%
+    IF Z2_LEN == 2
+        SIF Z2_RLEN != 2
+            PRINTS ","
+        PRINTS " or "
+    ELSEIF Z2_LEN > 2
+        PRINTS ", "
+    ENDIF
+    Z2_LEN -= 1
+    IF Z2_LEN < 1
+        PRINTL ?
+        BREAK
+    ENDIF
+WEND
+
+@Z2_GLOBAL_CHECK(Z2_TBL)
+#DIM DYNAMIC Z2_TBL
+#DIM DYNAMIC Z2_LEN
+#DIM DYNAMIC Z2_OBITS
+#DIM DYNAMIC Z2_K
+#DIM DYNAMIC Z2_OBJ
+Z2_LEN = Z2_MT:Z2_TBL:0
+Z2_OBITS = Z2_P_SLOCBITS
+FOR Z2_K, 0, Z2_GLOB_N:Z2_HERE
+    Z2_OBJ = Z2_GLOB:Z2_HERE:Z2_K
+    SIF Z2_THIS_ITQ(Z2_OBJ)
+        CALL Z2_OBJ_FOUND, Z2_OBJ, Z2_TBL
+NEXT
+FOR Z2_K, 0, Z2_PSEUDO_N:Z2_HERE
+    IF Z2_P_NAM == Z2_PSEUDO_W:Z2_HERE:Z2_K
+        Z2_PSEUDO_ACTION '= Z2_PSEUDO_R:Z2_HERE:Z2_K
+        Z2_NAME:O_PSEUDO_OBJECT '= Z2_DW:Z2_P_NAM
+        CALL Z2_OBJ_FOUND, O_PSEUDO_OBJECT, Z2_TBL
+        BREAK
+    ENDIF
+NEXT
+IF Z2_MT:Z2_TBL:0 == Z2_LEN
+    Z2_P_SLOCBITS = -1
+    Z2_P_TABLE = Z2_TBL
+    CALL Z2_DO_SL, O_GLOBAL_OBJECTS, 1, 1
+    Z2_P_SLOCBITS = Z2_OBITS
+    SIF Z2_MT:Z2_TBL:0 == 0 && (Z2_PRSA == V_LOOK_INSIDE || Z2_PRSA == V_SEARCH || Z2_PRSA == V_EXAMINE)
+        CALL Z2_DO_SL, O_ROOMS, 1, 1
+ENDIF
+
+@Z2_DO_SL(Z2_OBJ, Z2_BIT1, Z2_BIT2)
+#DIM DYNAMIC Z2_OBJ
+#DIM DYNAMIC Z2_BIT1
+#DIM DYNAMIC Z2_BIT2
+IF (Z2_P_SLOCBITS & (Z2_BIT1 + Z2_BIT2)) == Z2_BIT1 + Z2_BIT2
+    CALL Z2_SEARCH_LIST, Z2_OBJ, Z2_P_TABLE, P_SRCALL
+ELSEIF Z2_P_SLOCBITS & Z2_BIT1
+    CALL Z2_SEARCH_LIST, Z2_OBJ, Z2_P_TABLE, P_SRCTOP
+ELSEIF Z2_P_SLOCBITS & Z2_BIT2
+    CALL Z2_SEARCH_LIST, Z2_OBJ, Z2_P_TABLE, P_SRCBOT
+ENDIF
+
+@Z2_SEARCH_LIST(Z2_PARENT_O, Z2_TBL, Z2_LVL)
+#DIM DYNAMIC Z2_PARENT_O
+#DIM DYNAMIC Z2_TBL
+#DIM DYNAMIC Z2_LVL
+#DIM DYNAMIC Z2_OBJ
+#DIM DYNAMIC Z2_SUB
+Z2_OBJ = Z2_CHILD:Z2_PARENT_O
+WHILE Z2_OBJ
+    SIF Z2_LVL != P_SRCBOT && Z2_SYN_N:Z2_OBJ && Z2_THIS_ITQ(Z2_OBJ)
+        CALL Z2_OBJ_FOUND, Z2_OBJ, Z2_TBL
+    IF (Z2_LVL != P_SRCTOP || Z2_ATTR:Z2_OBJ:F_SEARCHBIT || Z2_ATTR:Z2_OBJ:F_SURFACEBIT) && Z2_CHILD:Z2_OBJ && (Z2_ATTR:Z2_OBJ:F_OPENBIT || Z2_ATTR:Z2_OBJ:F_TRANSBIT)
+        IF Z2_ATTR:Z2_OBJ:F_SURFACEBIT || Z2_ATTR:Z2_OBJ:F_SEARCHBIT
+            Z2_SUB = P_SRCALL
+        ELSE
+            Z2_SUB = P_SRCTOP
+        ENDIF
+        CALL Z2_SEARCH_LIST, Z2_OBJ, Z2_TBL, Z2_SUB
+    ENDIF
+    Z2_OBJ = Z2_SIBLING:Z2_OBJ
+WEND
+
+@Z2_OBJ_FOUND(Z2_OBJ, Z2_TBL)
+#DIM DYNAMIC Z2_OBJ
+#DIM DYNAMIC Z2_TBL
+Z2_MT:Z2_TBL:0 += 1
+Z2_MT:Z2_TBL:(Z2_MT:Z2_TBL:0) = Z2_OBJ
+
+@Z2_TAKE_CHECK
+CALL Z2_ITAKE_CHECK, MT_PRSO, Z2_SYN_GET(5)
+SIF !RESULT
+    RETURN 0
+CALL Z2_ITAKE_CHECK, MT_PRSI, Z2_SYN_GET(6)
+RETURN RESULT
+
+@Z2_ITAKE_CHECK(Z2_TBL, Z2_IBITS)
+#DIM DYNAMIC Z2_TBL
+#DIM DYNAMIC Z2_IBITS
+#DIM DYNAMIC Z2_PTR
+#DIM DYNAMIC Z2_OBJ
+#DIM DYNAMIC Z2_TAKEN
+Z2_PTR = Z2_MT:Z2_TBL:0
+IF Z2_PTR && ((Z2_IBITS & S_SHAVE) || (Z2_IBITS & S_STAKE))
+    WHILE 1
+        Z2_PTR -= 1
+        SIF Z2_PTR < 0
+            BREAK
+        Z2_OBJ = Z2_MT:Z2_TBL:(Z2_PTR + 1)
+        IF Z2_OBJ == O_IT
+            IF !Z2_ACCESSIBLE(Z2_P_IT_OBJECT)
+                PRINTL I don't see what you're referring to.
+                RETURN 0
+            ENDIF
+            Z2_OBJ = Z2_P_IT_OBJECT
+        ENDIF
+        IF !Z2_HELDQ(Z2_OBJ) && Z2_OBJ != O_HANDS && Z2_OBJ != O_ME
+            Z2_PRSO = Z2_OBJ
+            IF Z2_ATTR:Z2_OBJ:F_TRYTAKEBIT
+                Z2_TAKEN = 1
+            ELSEIF Z2_WINNER != O_ADVENTURER
+                Z2_TAKEN = 0
+            ELSEIF Z2_IBITS & S_STAKE
+                CALL Z2_ITAKE, 0
+                Z2_TAKEN = RESULT != 1
+            ELSE
+                Z2_TAKEN = 1
+            ENDIF
+            IF Z2_TAKEN && (Z2_IBITS & S_SHAVE) && Z2_WINNER == O_ADVENTURER
+                IF Z2_OBJ == O_NOT_HERE_OBJECT
+                    PRINTL You don't have that!
+                    RETURN 0
+                ENDIF
+                PRINTFORML You don't have the %Z2_NAME:Z2_OBJ%.
+                RETURN 0
+            ELSEIF !Z2_TAKEN && Z2_WINNER == O_ADVENTURER
+                PRINTL (Taken)
+            ENDIF
+        ENDIF
+    WEND
+ENDIF
+RETURN 1
+
+@Z2_MANY_CHECK
+#DIM DYNAMIC Z2_LOSS
+IF Z2_MT:MT_PRSO:0 > 1 && !(Z2_SYN_GET(5) & S_SMANY)
+    Z2_LOSS = 1
+ELSEIF Z2_MT:MT_PRSI:0 > 1 && !(Z2_SYN_GET(6) & S_SMANY)
+    Z2_LOSS = 2
+ENDIF
+IF Z2_LOSS
+    PRINTS "You can't use multiple "
+    SIF Z2_LOSS == 2
+        PRINTS "in"
+    PRINTS "direct objects with \""
+    IF Z2_ITBL:P_VERBN == 0
+        PRINTS "tell"
+    ELSEIF Z2_P_OFLAG || Z2_P_MERGED
+        PRINTFORM %Z2_DW:Z2_VTBL_W%
+    ELSE
+        PRINTFORM %Z2_VERB_TEXT()%
+    ENDIF
+    PRINTL ".
+    RETURN 0
+ENDIF
+RETURN 1
+
+; LIT? (RM RMBIT). Clobbers P-MERGE, P-TABLE and P-SLOCBITS like the original.
+@Z2_LITQ_OF(Z2_RM, Z2_RMBIT = 1)
+#DIM DYNAMIC Z2_RM
+#DIM DYNAMIC Z2_RMBIT
+#DIM DYNAMIC Z2_OHERE
+#DIM DYNAMIC Z2_L
+; <AND ,ALWAYS-LIT <EQUAL? ,WINNER ,PLAYER>> (the Wizard's Fluoresce).
+SIF Z2_GLOBAL:G_ALWAYS_LIT && Z2_WINNER == O_ADVENTURER
+    RETURN 1
+Z2_P_GWIMBIT = F_ONBIT
+Z2_OHERE = Z2_HERE
+Z2_HERE = Z2_RM
+IF Z2_RMBIT && Z2_ATTR:Z2_RM:F_ONBIT
+    Z2_L = 1
+ELSE
+    Z2_MT:MT_MERGE:0 = 0
+    Z2_P_TABLE = MT_MERGE
+    Z2_P_SLOCBITS = -1
+    IF Z2_OHERE == Z2_RM
+        CALL Z2_DO_SL, Z2_WINNER, 1, 1
+        SIF Z2_WINNER != O_ADVENTURER && Z2_PARENT:O_ADVENTURER == Z2_RM
+            CALL Z2_DO_SL, O_ADVENTURER, 1, 1
+    ENDIF
+    CALL Z2_DO_SL, Z2_RM, 1, 1
+    SIF Z2_MT:MT_MERGE:0 > 0
+        Z2_L = 1
+ENDIF
+Z2_HERE = Z2_OHERE
+Z2_P_GWIMBIT = 0
+RETURN Z2_L
+
+@Z2_THIS_ITQ(Z2_OBJ)
+#FUNCTION
+#DIM DYNAMIC Z2_OBJ
+#DIM DYNAMIC Z2_K
+#DIM DYNAMIC Z2_F
+SIF Z2_ATTR:Z2_OBJ:F_INVISIBLE
+    RETURNF 0
+IF Z2_P_NAM
+    Z2_F = 0
+    FOR Z2_K, 0, Z2_SYN_N:Z2_OBJ
+        SIF Z2_SYN:Z2_OBJ:Z2_K == Z2_P_NAM
+            Z2_F = 1
+    NEXT
+    SIF !Z2_F
+        RETURNF 0
+ENDIF
+IF Z2_P_ADJ
+    Z2_F = 0
+    FOR Z2_K, 0, Z2_ADJ_N:Z2_OBJ
+        SIF Z2_ADJ:Z2_OBJ:Z2_K == Z2_P_ADJ
+            Z2_F = 1
+    NEXT
+    SIF !Z2_F
+        RETURNF 0
+ENDIF
+SIF Z2_P_GWIMBIT != 0 && !Z2_ATTR:Z2_OBJ:Z2_P_GWIMBIT
+    RETURNF 0
+RETURNF 1
+
+@Z2_ACCESSIBLE(Z2_OBJ)
+#FUNCTION
+#DIM DYNAMIC Z2_OBJ
+#DIM DYNAMIC Z2_L
+#DIM DYNAMIC Z2_M
+SIF Z2_OBJ <= 0
+    RETURNF 0
+SIF Z2_ATTR:Z2_OBJ:F_INVISIBLE
+    RETURNF 0
+Z2_L = Z2_PARENT:Z2_OBJ
+WHILE 1
+    SIF !Z2_L
+        RETURNF 0
+    SIF Z2_L == O_GLOBAL_OBJECTS
+        RETURNF 1
+    SIF Z2_L == O_LOCAL_GLOBALS && Z2_GLOBAL_INQ(Z2_OBJ, Z2_HERE)
+        RETURNF 1
+    Z2_M = Z2_META_LOC(Z2_OBJ)
+    SIF Z2_M != Z2_HERE && Z2_M != Z2_PARENT:Z2_WINNER
+        RETURNF 0
+    SIF Z2_L == Z2_WINNER || Z2_L == Z2_HERE || Z2_L == Z2_PARENT:Z2_WINNER
+        RETURNF 1
+    SIF !Z2_ATTR:Z2_L:F_OPENBIT
+        RETURNF 0
+    ; <ACCESSIBLE? .L>
+    SIF Z2_ATTR:Z2_L:F_INVISIBLE
+        RETURNF 0
+    Z2_OBJ = Z2_L
+    Z2_L = Z2_PARENT:Z2_OBJ
+WEND
+RETURNF 0
+
+@Z2_META_LOC(Z2_OBJ)
+#FUNCTION
+#DIM DYNAMIC Z2_OBJ
+WHILE 1
+    SIF !Z2_OBJ
+        RETURNF 0
+    SIF Z2_PARENT:Z2_OBJ == O_GLOBAL_OBJECTS
+        RETURNF O_GLOBAL_OBJECTS
+    SIF Z2_PARENT:Z2_OBJ == O_ROOMS
+        RETURNF Z2_OBJ
+    Z2_OBJ = Z2_PARENT:Z2_OBJ
+WEND
+RETURNF 0
+
+@Z2_GLOBAL_INQ(Z2_O1, Z2_O2)
+#FUNCTION
+#DIM DYNAMIC Z2_O1
+#DIM DYNAMIC Z2_O2
+#DIM DYNAMIC Z2_K
+FOR Z2_K, 0, Z2_GLOB_N:Z2_O2
+    SIF Z2_GLOB:Z2_O2:Z2_K == Z2_O1
+        RETURNF 1
+NEXT
+RETURNF 0
+
+@Z2_HELDQ(Z2_CAN)
+#FUNCTION
+#DIM DYNAMIC Z2_CAN
+WHILE 1
+    Z2_CAN = Z2_PARENT:Z2_CAN
+    SIF !Z2_CAN
+        RETURNF 0
+    SIF Z2_CAN == Z2_WINNER
+        RETURNF 1
+WEND
+RETURNF 0
+
+; A value as the Z-machine holds it: a signed 16-bit word.
+@Z2_W16(Z2_V)
+#FUNCTION
+#DIM DYNAMIC Z2_V
+Z2_V = ((Z2_V % 65536) + 65536) % 65536
+RETURNF Z2_V - (Z2_V >= 32768) * 65536
+
+; <GET ,P-LEXV <+ ,P-CONT OFF>> with the story's word layout. P-CONT is a
+; word pointer in the story (entry k at word 2k-1: dictionary address, then
+; a word of length and position) and an entry number here (0 = none). With
+; P-CONT 0 the story reads P-LEXV from its start: word 0 is the header
+; (byte 59 = the table size, byte = the number of words), as after
+; "say float" with the wand pointed (V-INCANT stores it as SPELL-USED).
+; Words of length/position (even words) are not kept by the port: they are
+; returned as -1, which equals no dictionary word (the only use compares
+; with a word).
+@Z2_LEXV_AT(Z2_E, Z2_OFF)
+#FUNCTION
+#DIM DYNAMIC Z2_E
+#DIM DYNAMIC Z2_OFF
+#DIM DYNAMIC Z2_I
+Z2_I = Z2_OFF
+SIF Z2_E > 0
+    Z2_I += 2 * Z2_E - 1
+SIF Z2_I == 0
+    RETURNF 59 * 256 + Z2_LEXWORDS
+SIF Z2_I % 2 == 0
+    RETURNF -1
+RETURNF Z2_LXD:((Z2_I + 1) / 2)

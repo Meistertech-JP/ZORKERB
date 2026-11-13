@@ -2,27 +2,31 @@
 
 # ZORKERB Wiki
 
-ZORKERB is a port of Infocom's *ZORK I: The Great Underground Empire* (Release 119 / Serial 880429) to eraBASIC (ERB, ERH and CSV).
+ZORKERB ports Infocom's text adventures to eraBASIC (ERB, ERH and CSV). This repository holds two games.
 
-- This wiki covers revision **r29**.
-- The port is based on the Zork I source that Microsoft released under the MIT License: [historicalsource/zork1](https://github.com/historicalsource/zork1), commit `97b7b3d68c075dd9af7da499c3e9690ada3471fd`.
-- All game logic is written in ERB and runs on the included PyEmuera 3.0.0b2. No Z-machine interpreter or original story file is used at run time.
+| Game | Original | Revision | Source |
+| --- | --- | --- | --- |
+| ZORKERB I | ZORK I: The Great Underground Empire (Release 119 / Serial 880429) | r30 | [historicalsource/zork1](https://github.com/historicalsource/zork1) `97b7b3d6…` |
+| ZORKERB II | ZORK II: The Wizard of Frobozz (Release 63 / Serial 860811) | first public release (repository revision r30) | [historicalsource/zork2](https://github.com/historicalsource/zork2) `3da96610…` |
 
-ZORKERB is not an official release of, or endorsed by, Infocom, Microsoft or the authors of Emuera.
+- All game logic is written in ERB. Both games run on one shared PyEmuera 3.0.0 (`PyEmuera-3.0.0.pyz` at the repository root); no Z-machine interpreter and no original story file are used at run time.
+- On Windows, double-click `ZORKERB-I.bat` or `ZORKERB-II.bat`.
+
+ZORKERB is not an official release of, and is not endorsed by, Infocom, Microsoft, the authors of Emuera or the PyEmuera developers.
 
 ## Play
 
-- [Getting started](Getting-Started-English): requirements, starting the game, the title screen.
-- [Playing](Playing-English): command forms and common commands.
-- [Saving and restoring](Saving-and-Restoring-English): slots and compatibility with older saves.
-- [Compatibility and limitations](Compatibility-and-Limitations-English): verified environments and where output differs from the original.
+- [Getting started](Getting-Started-English): requirements, starting, the title screen (both games).
+- [ZORKERB II](ZORKERB-II-English): ZORKERB II in brief, what was checked, known limitations.
+- [Playing](Playing-English), [Saving and restoring](Saving-and-Restoring-English): both games.
+- [Compatibility and limitations](Compatibility-and-Limitations-English): what was checked in which environment, and where the ports differ (both games).
 
 ## Develop
 
-- [Architecture](Architecture-English): structure of the ERB implementation.
-- [Original source and ERB](Original-Source-English): ZIL and ERB files, mapping per ROUTINE.
-- [Developer guide](Developer-Guide-English): layout, running and checking, notes for changes.
-- [Verification](Testing-and-Verification-English): methods and r29 results.
+- [Developer guide](Developer-Guide-English): layout, running and checking, notes on changes (both games).
+- [Verification](Testing-and-Verification-English): methods and results for both games.
+- [Architecture](Architecture-English): structure of the ZORKERB I ERB implementation.
+- [Original source and ERB](Original-Source-English): ZORKERB I ZIL files, ERB files and routines.
 
 ## Project
 

@@ -1,55 +1,49 @@
 [日本語](Compatibility-and-Limitations) | English
 
-# Compatibility and known limitations
+# Compatibility and limitations
 
-This page covers ZORKERB r29. The original game is Zork I Release 119 / Serial 880429; the source is historicalsource/zork1 at commit `97b7b3d68c075dd9af7da499c3e9690ada3471fd`.
+Recorded checks and limitations of ZORKERB I and ZORKERB II.
 
-## Run-time environments
+## Environments
 
-| Environment | Status |
-| --- | --- |
-| PyEmuera 3.0.0b2 (unmodified, SHA-256 `8473b250…4bcb`), Linux x86_64, Python 3.13 | All verification was run in this environment; see [Verification](Testing-and-Verification-English). |
-| PyEmuera 3.0.0b2 on other operating systems | The game uses no OS-dependent features. Terminal input and display follow PyEmuera and the terminal. |
-| Emuera 1.824 (Windows) | Start-up, the title screen, a new game and the first five moves (`what`, `what is mailbox`, `take mailbox`, `open mailbox`, `read leaflet`) were observed; the responses matched the original. The regression tests and comparisons with the original were not run in this environment. |
-| Other PyEmuera versions | Not verified. |
+| Environment | ZORKERB I | ZORKERB II |
+| --- | --- | --- |
+| PyEmuera 3.0.0 (recorded verification version, unmodified, SHA-256 `8a7b3697…4b35`), Linux x86_64, Python 3.13 | All verification ran here ([Verification](Testing-and-Verification-English)) | All verification ran here ([Verification](Testing-and-Verification-English)) |
+| PyEmuera 3.0.0, Windows | No record | Start-up, a new game and a few moves were checked; not a full play-through |
+| PyEmuera 3.0.0, other systems | The game uses nothing system-dependent; terminal input and display follow PyEmuera and the terminal | The game uses nothing system-dependent; terminal input and display follow PyEmuera and the terminal |
+| Native Emuera (Windows) | On Emuera 1.824, start-up, the title screen, a new game and the first five moves (`what`, `what is mailbox`, `take mailbox`, `open mailbox`, `read leaflet`) were checked; the responses matched the original. The regression tests and comparisons with the original were not run there | On Emuera1824+v24 (Windows 10), 11 automatic replays matched, apart from line wrapping and spaces at line ends. They include saving and restoring in text and binary format, random numbers with saves, the 400-point route and the original's fatal-error path. 11 manually checked items of normal play also passed |
+| Other PyEmuera versions | Not verified | Not verified |
 
-The game consists of ERB, ERH and CSV files only and does not call external programs or files at run time.
+The included games are written only in ERB, ERH and CSV and call no external program or file at run time. They use no Z-machine interpreter and no original story file.
 
-## What follows the original
+## What follows the originals
 
-- **Parser:** uses the story's own dictionary (684 words) and syntax table (267 lines), following the gparser.zil procedure. That covers the word scan, CLAUSE, SYNTAX-CHECK, GWIM, ORPHAN, and the handling of IT, ALL, AGAIN and OOPS.
-- **Game logic:** rooms, objects, actions, timed events, combat, the thief, scoring, death and resurrection, and the ending. The mapping of the source's ROUTINEs is summarised in [Verification](Testing-and-Verification-English).
-- **Random numbers:** drawn at the same points and in the same order as the original. `#random` *n* gives the same predictable sequence as the original.
-- **Text:** the original text is printed unchanged; only line breaks differ.
+- **Parser:** the original story's dictionary and syntax table, parsed with the steps of the original gparser.zil (word scan, CLAUSE, SYNTAX-CHECK, GWIM, ORPHAN, IT, ALL, AGAIN, OOPS).
+- **Game logic:** rooms, objects, actions, clock interrupts, combat, scoring, death and the endgame follow the original routines. Each game's documents map them.
+- **Random numbers:** drawn at the same places and in the same order. With `#random` *number* the sequence is the original's predictable one.
+- **Text:** the original text, unchanged; only line breaks differ.
 
-## Known limitations
+## Limitations common to the included games
 
-### Output that depends on the interpreter
+- **Prompt:** when PyEmuera is used interactively in a terminal, the game's `>` is followed by PyEmuera's own `> ` input prompt, so `>` appears twice. With input from a file (`--inputs`), PyEmuera shows no prompt.
+- **Line wrapping:** line breaks may differ from the original interpreter's. The native Emuera wraps to its window width.
+- **Saves:** saves of the originals (Quetzal) are not compatible. Where the originals ask for a file name, the ports use slot numbers 0 to 9; the responses (`Ok.`, `Failed.`) are the originals'. Saves of the native Emuera use Emuera's own format and are not interchangeable with PyEmuera's.
+- **Interpreter-dependent places:** a few places in the originals give results that depend on the Z-machine interpreter. The ports give the results of the Frotz used for comparison.
 
-In the following cases the original's output is decided by the Z-machine interpreter or its memory layout, so ZORKERB does not produce the same text.
+## ZORKERB I
 
-- **Input lines longer than 120 characters:** like the original's input buffer, only the first 120 characters are read. The interpreter used for comparison (dfrotz) also reads words beyond the buffer and prints them from bytes outside it; ZORKERB does not reproduce this.
-- **IT referring to object 0:** after drinking the water, or after the cyclops leaves, `examine it` makes the original operate on object 0.
-  - A strict interpreter stops at that point.
-  - A permissive interpreter prints a warning and then `I don't see what you are referring to.` ZORKERB prints that sentence, and its state matches that case.
-- **SWIM without an object:** the original prints the name of object 0, whose text depends on the interpreter. ZORKERB prints the text of the interpreter used for comparison.
+In these cases the original's output depends on the Z-machine interpreter or its memory layout, so the output differs:
 
-### Saves
+- **Input lines over 120 characters:** as the original's input buffer, only the first 120 characters are read. The comparison interpreter (dfrotz) reads words beyond the buffer and prints them from bytes outside it; this is not reproduced.
+- **IT pointing at object 0:** after drinking the water or after the cyclops has gone, `examine it` makes the original run instructions on object 0. A strict interpreter stops there; a lenient one prints a warning and then `I don't see what you are referring to.`. ZORKERB I prints that sentence, and its state matches that case.
+- **SWIM with no object:** the original tries to print the name of object 0, which depends on the interpreter. ZORKERB I prints what the comparison interpreter printed.
+- **Save format:** 29. Saves from r28 and earlier cannot be restored.
 
-- The save format is version 29. Saves from r28 and earlier cannot be restored.
-- The original game's Quetzal saves are not supported.
-- The original's file-name prompt is replaced by a slot number from 0 to 9. The save and restore responses (`Ok.`, `Failed.`) are the original's.
+## ZORKERB II
 
-### Terminal display
+- **The Fantasize illusion:** while the spell is active, looking into an open container you are not carrying makes the original print `There is a ` and stop with `Fatal error: Store out of dynamic memory`; the layout of the original's data table does not match the routine that reads it. The port ends at the same point with the same message. Save before trying it.
+- **Truncated saves on the native Emuera:** loading a truncated save file on the native Emuera stops with an engine error (the game cannot prevent it). The other slots and the game files are unchanged. Do not edit save files.
 
-- **Prompt:** with PyEmuera in an interactive terminal, PyEmuera's input line shows `> ` after the game's own `>`, so the prompt appears twice. When input is supplied from a file (`--inputs`), PyEmuera shows no input line. Emuera shows `>` once and echoes the input on the next line.
-- **Line wrapping:** the game breaks long text at a fixed width. The breaks may fall in different places than in the original interpreter.
+## Scope of the state comparisons
 
-### Scope of state comparisons
-
-State comparisons with the original use the following values, read from a save. They do not establish that the whole memory is identical.
-
-- current location, score and moves
-- the order of the inventory
-- the parent/child relations and flags of the tracked objects
-- IT
+The comparisons of game state with the original do not check the whole memory. What was compared is listed in [Verification](Testing-and-Verification-English).

@@ -1,94 +1,70 @@
 # ZORKERB
 
-**r29** · [日本語](README.md)
+Ports of Infocom's text adventures (ZORKERB I and ZORKERB II) to Emuera-compatible eraBASIC (ERB, ERH and CSV). 日本語: [README.md](README.md)
 
-ZORKERB is a port of Infocom's text adventure *ZORK I: The Great Underground Empire* (Release 119 / Serial 880429) to eraBASIC (ERB, ERH and CSV), the scripting language of the Emuera engine family.
+| Game | Original | Start (Windows) | Details |
+| --- | --- | --- | --- |
+| ZORKERB I | ZORK I: The Great Underground Empire (Release 119 / Serial 880429) | `ZORKERB-I.bat` | [ZORKERB-I/README_en.md](ZORKERB-I/README_en.md) |
+| ZORKERB II | ZORK II: The Wizard of Frobozz (Release 63 / Serial 860811) | `ZORKERB-II.bat` | [ZORKERB-II/README_en.md](ZORKERB-II/README_en.md) |
 
-## Relationship to the original game
+All game logic is written in ERB, rewritten from the original ZIL sources (released by Microsoft under the MIT License); the original English text is used unchanged. No Z-machine interpreter and no original story file are used at run time.
 
-The port is based on the Zork I ZIL source that Microsoft released under the MIT License ([historicalsource/zork1](https://github.com/historicalsource/zork1), commit `97b7b3d68c075dd9af7da499c3e9690ada3471fd`). Rooms, objects, the parser, combat, timed events and scoring are reimplemented in ERB. The original English game text is used as-is.
+ZORKERB is an unofficial port. It is not an official release of, and is not endorsed by, Infocom, Microsoft, the authors of Emuera or the PyEmuera developers.
 
-ZORKERB is not an official release of, or endorsed by, Infocom, Microsoft or the authors of Emuera.
+## Starting
 
-## A native eraBASIC port
+Python 3.10 or later is required (not included).
 
-All game logic is written in ERB. At run time the game uses no Z-machine interpreter, no original story file and no separate game implementation written in Python.
-
-The game runs on the included Emuera-compatible engine [PyEmuera](https://github.com/Meistertech-JP/PyEmuera) 3.0.0b2.
-
-## Getting ZORKERB
-
-- **Distribution ZIP:** `ZORKERB-r29.zip` on the GitHub Releases page is the verified distribution. Check its SHA-256 against `SHA256SUMS.txt` from the same release, then extract it into a new folder.
-- **Repository:** cloning the repository gives the same files. The "Source code" ZIP and tar.gz that GitHub generates automatically also match the repository, but the verified distribution is `ZORKERB-r29.zip`.
-
-## Requirements and running the game
-
-- Python 3.10 or later (required by PyEmuera).
-- The included `PyEmuera-3.0.0b2.pyz` is the unmodified PyEmuera 3.0.0b2 (SHA-256 `8473b250080ba678e05b4f484fcc6790f96614c2e9a7aaab077ab379e05f4bcb`).
-
-In this folder (the one containing `ERB/` and `CSV/`), run:
+- **Windows:** double-click `ZORKERB-I.bat` or `ZORKERB-II.bat`.
+- **Elsewhere:** run in this folder:
 
 ```console
-python PyEmuera-3.0.0b2.pyz .
+python3 PyEmuera-3.0.0.pyz ZORKERB-I
+python3 PyEmuera-3.0.0.pyz ZORKERB-II
 ```
 
-Enter `0` on the title screen to start a new game. See [Getting started](docs/GETTING_STARTED_en.md).
+Enter `0` on the title screen to start a new game. The included games run on `PyEmuera-3.0.0.pyz` in this folder (PyEmuera 3.0.0, unmodified, SHA-256 `8a7b3697b97155c4dc994c8349c6756bb0401000d3bbccd8e85ff046e3774b35`).
 
-## Playing, saving and restoring
+## Layout
 
-Commands are typed in English, for example `look`, `open mailbox`, `take leaflet`, `north`, `inventory` or `score`.
-
-| Action | Command |
-| --- | --- |
-| Save | `save 3` saves to slot 3 (slots 0–9). Without a number, slot 0 is used. |
-| Restore | `restore 3` during play, or `[1] Restore` on the title screen. |
-| Start over | `restart` |
-| Quit | `quit` |
-
-The save format is version 29. Saves from earlier revisions and the original game's Quetzal saves cannot be restored.
-
-See [Playing](docs/PLAYING_en.md).
-
-## Compatibility and known limitations
-
-Revision r29 has been verified under PyEmuera 3.0.0b2 with:
-
-- the full regression suite of 1,596 cases;
-- comparisons against the original story using the same random number sequence;
-- a complete game reaching the ending with 350 points in 613 moves, using ordinary commands only.
-
-A few paths whose output depends on the original interpreter, such as input lines longer than 120 characters, do not produce the same text as the original. On Emuera 1.824 (Windows), start-up and the first moves have been checked; the regression tests and comparisons with the original were run under PyEmuera.
-
-For details, see:
-
-- [Compatibility and known limitations](docs/COMPATIBILITY_en.md)
-- [Verification](docs/VERIFICATION_en.md)
+```text
+PyEmuera-3.0.0.pyz        the engine shared by the included games
+ZORKERB-I.bat             starts ZORKERB I (Windows)
+ZORKERB-II.bat            starts ZORKERB II (Windows)
+ZORKERB-I/                ZORKERB I: the game (ERB/, CSV/), README, documents
+ZORKERB-II/               ZORKERB II: the game (ERB/, CSV/), README
+docs/                     documents common to the included games
+licenses/                 licenses and notices
+SHA256SUMS.txt            SHA-256 of every file
+```
 
 ## Documents
 
 | Document | Contents |
 | --- | --- |
-| [Developer guide](docs/DEVELOPER_GUIDE_en.md) | Layout, running and checking, notes for changes |
-| [Architecture](docs/ARCHITECTURE_en.md) | Structure of the ERB implementation |
-| [Sources](docs/SOURCES.md) | The original source and verification references |
-| [Release notes](RELEASE_NOTES.md) | Changes in r29 (Japanese and English) |
-| [Changelog](CHANGELOG.md) | Changes by revision |
-| [Wiki sources](docs/wiki/Home-English.md) | Source pages for the project wiki |
+| [Getting started](docs/GETTING_STARTED_en.md) | Requirements, starting, the title screen |
+| [Playing](docs/PLAYING_en.md) | Command forms, common commands, saving and restoring |
+| [Compatibility and limitations](docs/COMPATIBILITY_en.md) | What was checked in which environment, and where the ports differ |
+| [Verification](docs/VERIFICATION_en.md) | Verification methods and results |
+| [Developer guide](docs/DEVELOPER_GUIDE_en.md) | Layout, running and checking, notes on changes |
+| [Sources](docs/SOURCES.md) | Original sources and references |
 
-The ZIL-to-ERB mapping is in Japanese ([docs/SOURCE_MAPPING_ja.md](docs/SOURCE_MAPPING_ja.md)).
+## Verification
+
+The pinned original stories were compared with the ports under Frotz. Results and scope: [Verification](docs/VERIFICATION_en.md).
 
 ## Acknowledgements
 
-*ZORK I* was written by Marc Blank, Dave Lebling, Bruce Daniels and Tim Anderson and published by Infocom. Thanks to Microsoft for releasing the Zork I source under the MIT License, and to historicalsource/zork1 for preserving and publishing it.
+*ZORK I*: Marc Blank, Dave Lebling, Bruce Daniels and Tim Anderson; published by Infocom.
+*ZORK II*: Dave Lebling and Marc Blank; published by Infocom.
 
-## License and notices
+Thanks to Microsoft and historicalsource for releasing and preserving the sources.
 
-The ZORKERB ERB code is released under the MIT License, Copyright (c) 2026 Meistertech-JP ([LICENSE](LICENSE)).
+## License and attribution
 
-The original Zork I source and game text are under Microsoft's MIT License, Copyright (c) 2025 Microsoft ([licenses/ZORK1-MIT.txt](licenses/ZORK1-MIT.txt)).
+- The ZORKERB ERB ports: MIT License, Copyright (c) 2026 Meistertech-JP ([LICENSE](LICENSE))
+- Zork I source and text: MIT License, Copyright (c) 2025 Microsoft ([licenses/ZORK1-MIT.txt](licenses/ZORK1-MIT.txt))
+- Zork II source and text: MIT License, Copyright (c) 2025 Microsoft ([licenses/ZORK2-MIT.txt](licenses/ZORK2-MIT.txt))
+- PyEmuera 3.0.0: MIT License; Emuera-derived and other parts keep their own terms ([licenses/PyEmuera/](licenses/PyEmuera/LICENSE))
 
-The included PyEmuera is under the MIT License. Emuera-derived and other parts keep their own terms ([licenses/PyEmuera/](licenses/PyEmuera/LICENSE)).
-
-The MIT License of the Zork I source is a copyright license; it does not grant rights to use trademarks. Names such as "Zork" and "Infocom" may be trademarks of their respective owners. ZORKERB uses them only to describe the work, and uses no official logos or artwork.
-
-See [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+The MIT License covers copyright only and grants no trademark rights. Names such as "Zork" and "Infocom" may be trademarks of their respective owners; ZORKERB uses them only to describe the work. See [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).

@@ -1,93 +1,70 @@
 # ZORKERB
 
-**r29** · [English](README_en.md) · [詳細ガイド](README_ja.md)
+Infocom のテキストアドベンチャー（ZORKERB I・ZORKERB II）を、Emuera 互換の eraBASIC（ERB・ERH・CSV）に移植したものです。English: [README_en.md](README_en.md)
 
-ZORKERB は、Infocom のテキストアドベンチャー『ZORK I: The Great Underground Empire』（Release 119 / Serial 880429）を、Emuera 互換の eraBASIC（ERB・ERH・CSV）で書き直した移植版です。
+| 作品 | 原作 | 起動（Windows） | 説明 |
+| --- | --- | --- | --- |
+| ZORKERB I | ZORK I: The Great Underground Empire（Release 119 / Serial 880429） | `ZORKERB-I.bat` | [ZORKERB-I/README_ja.md](ZORKERB-I/README_ja.md) |
+| ZORKERB II | ZORK II: The Wizard of Frobozz（Release 63 / Serial 860811） | `ZORKERB-II.bat` | [ZORKERB-II/README_ja.md](ZORKERB-II/README_ja.md) |
 
-## 原作との関係
+ゲームの処理はすべて ERB で書かれています。原作の ZIL ソース（Microsoft が MIT License で公開）をもとに書き直し、原作の文章（英語）をそのまま使っています。実行時に Z-machine の解釈系や原作の story ファイルは使いません。
 
-ZORKERB は、Microsoft が MIT License で公開している Zork I の ZIL ソース（[historicalsource/zork1](https://github.com/historicalsource/zork1)、コミット `97b7b3d68c075dd9af7da499c3e9690ada3471fd`）をもとにしています。部屋・物体・構文解析・戦闘・時計・得点などの処理を ERB で書き直し、原作の文章（英語）はそのまま使っています。
+ZORKERB は非公式の移植です。Infocom、Microsoft、Emuera の作者、PyEmuera の開発者による公式版ではなく、これらの承認を受けたものでもありません。
 
-ZORKERB は Infocom、Microsoft、Emuera の作者による公式版ではなく、これらの承認を受けたものでもありません。
+## 起動
 
-## eraBASIC によるネイティブ移植
+Python 3.10 以上が必要です（同梱していません）。
 
-ゲームの処理はすべて ERB で書かれています。実行時に Z-machine の解釈系、原作の story ファイル、Python で書かれた別のゲーム実装は使いません。
-
-ゲームは、同梱の Emuera 互換エンジン [PyEmuera](https://github.com/Meistertech-JP/PyEmuera) 3.0.0b2 で動かします。
-
-## 入手
-
-- **配布 ZIP：** GitHub の Releases にある `ZORKERB-r29.zip` が、検証済みの配布物です。同じ Release の `SHA256SUMS.txt` で SHA-256 を確かめてから、新しいフォルダーへ展開してください。
-- **リポジトリ：** `git clone` で取得しても、同じファイルが揃います。GitHub が自動で作る「Source code」の ZIP・tar.gz もリポジトリの内容と同じですが、検証済みの配布物は `ZORKERB-r29.zip` です。
-
-## 動作環境と起動
-
-- Python 3.10 以上が必要です（PyEmuera の要件）。
-- 同梱の `PyEmuera-3.0.0b2.pyz` は、未改変の PyEmuera 3.0.0b2 です（SHA-256 `8473b250080ba678e05b4f484fcc6790f96614c2e9a7aaab077ab379e05f4bcb`）。
-
-このフォルダー（`ERB/` と `CSV/` がある場所）で、次のように実行します。
+- **Windows：** `ZORKERB-I.bat` または `ZORKERB-II.bat` をダブルクリックします。
+- **そのほかの環境：** このフォルダーで次のように実行します。
 
 ```console
-python PyEmuera-3.0.0b2.pyz .
+python3 PyEmuera-3.0.0.pyz ZORKERB-I
+python3 PyEmuera-3.0.0.pyz ZORKERB-II
 ```
 
-タイトル画面で `0` を入力すると新しいゲームが始まります。詳しくは[はじめに](docs/GETTING_STARTED_ja.md)を参照してください。
+タイトル画面で `0` を入力すると新しいゲームが始まります。収録作品は、このフォルダーの `PyEmuera-3.0.0.pyz`（未改変の PyEmuera 3.0.0、SHA-256 `8a7b3697b97155c4dc994c8349c6756bb0401000d3bbccd8e85ff046e3774b35`）で動きます。
 
-## 遊び方・保存と復帰
+## 構成
 
-入力は英語のコマンドです（`look`、`open mailbox`、`take leaflet`、`north`、`inventory`、`score` など）。
+```text
+PyEmuera-3.0.0.pyz        収録作品用の実行エンジン
+ZORKERB-I.bat             ZORKERB I を起動（Windows）
+ZORKERB-II.bat            ZORKERB II を起動（Windows）
+ZORKERB-I/                ZORKERB I のゲーム（ERB/、CSV/）、README、作品の資料
+ZORKERB-II/               ZORKERB II のゲーム（ERB/、CSV/）、README
+docs/                     収録作品に共通の文書
+licenses/                 ライセンスと権利表示
+SHA256SUMS.txt            各ファイルの SHA-256
+```
 
-| 操作 | コマンド |
+## 文書
+
+| 文書 | 内容 |
 | --- | --- |
-| 保存 | `save 3` のように、スロット番号0〜9を付けて保存します。番号を省くとスロット0です。 |
-| 復帰 | ゲーム中に `restore 3`、またはタイトル画面の `[1] Restore` で復帰します。 |
-| 最初から | `restart` |
-| 終了 | `quit` |
+| [はじめに](docs/GETTING_STARTED_ja.md) | 必要なもの、起動、タイトル画面 |
+| [遊び方](docs/PLAYING_ja.md) | コマンドの形、よく使うコマンド、保存と復帰 |
+| [互換性と既知の制限](docs/COMPATIBILITY_ja.md) | 実行環境ごとの確認状況と、原作と同じにならない場合 |
+| [検証](docs/VERIFICATION_ja.md) | 検証の方法と結果 |
+| [開発者向けガイド](docs/DEVELOPER_GUIDE_ja.md) | ファイルの構成、実行と確認、変更するときの注意 |
+| [参照資料](docs/SOURCES.md) | 原典と検証に使った資料（英語） |
 
-セーブ形式は29です。それより前の版のセーブ、原作の Quetzal 形式のセーブは読み込めません。
+## 検証
 
-詳しくは[遊び方](docs/PLAYING_ja.md)を参照してください。
-
-## 互換性と既知の制限
-
-r29 では、PyEmuera 3.0.0b2 上で次の検証を行いました。
-
-- 全回帰試験 1,596件
-- 原作 story と同じ乱数列での比較
-- 通常の入力だけで350点・613手で終幕に到達する経路の完走
-
-原作の表示が解釈系に依存する一部の経路（120文字を超える入力行など）は、原作と同じ表示になりません。Emuera 1.824（Windows）では起動と序盤の操作を確認しています。回帰試験と原作との比較は PyEmuera で行っています。
-
-詳しくは次の文書を参照してください。
-
-- [互換性と既知の制限](docs/COMPATIBILITY_ja.md)
-- [検証](docs/VERIFICATION_ja.md)
-
-## 資料
-
-| 資料 | 内容 |
-| --- | --- |
-| [開発者向けガイド](docs/DEVELOPER_GUIDE_ja.md) | ファイル構成、実行と確認の方法、変更するときの注意 |
-| [アーキテクチャ](docs/ARCHITECTURE_ja.md) | ERB 実装の構造 |
-| [ZIL と ERB の対応](docs/SOURCE_MAPPING_ja.md) | 原典と移植の対応 |
-| [参照資料](docs/SOURCES.md) | 原典と検証に使った資料 |
-| [リリースノート](RELEASE_NOTES.md) | r29 の変更点 |
-| [変更履歴](CHANGELOG.md) | 版ごとの変更 |
-| [Wiki 原稿](docs/wiki/Home.md) | Wiki 用の原稿 |
+固定した原作 story を Frotz で動かし、同じ入力を与えた移植版と比べました。結果と確認範囲は[検証](docs/VERIFICATION_ja.md)を参照してください。
 
 ## 謝辞
 
-『ZORK I』は、Marc Blank、Dave Lebling、Bruce Daniels、Tim Anderson が制作し、Infocom が発売した作品です。Zork I のソースを MIT License で公開した Microsoft と、原典を保存・公開している historicalsource/zork1 に感謝します。
+『ZORK I』：Marc Blank、Dave Lebling、Bruce Daniels、Tim Anderson。Infocom 発売。
+『ZORK II』：Dave Lebling、Marc Blank。Infocom 発売。
+
+原典を MIT License で公開した Microsoft と、保存・公開している historicalsource に感謝します。
 
 ## ライセンスと権利表示
 
-ZORKERB の ERB 移植コードは MIT License です（Copyright (c) 2026 Meistertech-JP、[LICENSE](LICENSE)）。
+- ZORKERB の ERB 移植：MIT License、Copyright (c) 2026 Meistertech-JP（[LICENSE](LICENSE)）
+- Zork I: MIT License, Copyright (c) 2025 Microsoft ([licenses/ZORK1-MIT.txt](licenses/ZORK1-MIT.txt))
+- Zork II: MIT License, Copyright (c) 2025 Microsoft ([licenses/ZORK2-MIT.txt](licenses/ZORK2-MIT.txt))
+- PyEmuera 3.0.0：MIT License。Emuera 由来の部分などは、それぞれの条件に従います（[licenses/PyEmuera/](licenses/PyEmuera/LICENSE)）
 
-原作 Zork I のソースと文章は、Microsoft の MIT License に従います（Copyright (c) 2025 Microsoft、[licenses/ZORK1-MIT.txt](licenses/ZORK1-MIT.txt)）。
-
-同梱の PyEmuera は MIT License です。Emuera 由来の部分などは、それぞれの条件に従います（[licenses/PyEmuera/](licenses/PyEmuera/LICENSE)）。
-
-Zork I のソースの MIT License は、ソースコードの著作権についての許諾で、商標の使用を許諾するものではありません。「Zork」「Infocom」などの名称は、それぞれの権利者の商標である場合があります。ZORKERB は、これらの名称を作品を説明する目的でのみ使っています。公式のロゴや図案は使っていません。
-
-詳細は [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) を参照してください。
+MIT License は著作権についての許諾で、商標の使用を許諾するものではありません。「Zork」「Infocom」などの名称は、それぞれの権利者の商標である場合があります。ZORKERB は、これらの名称を作品を説明する目的でのみ使っています。詳細は [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) を参照してください。

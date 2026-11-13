@@ -1,6 +1,6 @@
 # Architecture
 
-The structure of the ZORKERB r29 ERB implementation. File names refer to `ERB/`.
+The structure of the ZORKERB I ERB implementation. File names refer to `ZORKERB-I/ERB/`.
 
 ## Overview
 

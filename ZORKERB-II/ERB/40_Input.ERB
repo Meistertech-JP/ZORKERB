@@ -1,0 +1,111 @@
+﻿; One turn: gmain.zil MAIN-LOOP-1 (45_Main), then the exits of V-WALK.
+@Z2_READ_TURN
+CALL Z2_MAIN_LOOP_1
+
+@Z2_PLURAL(Z2_N)
+#FUNCTIONS
+#DIM DYNAMIC Z2_N
+SIF Z2_N == 1
+    RETURNF ""
+RETURNF "s"
+
+@Z2_DIR_OF(Z2_W)
+#FUNCTION
+#DIMS DYNAMIC Z2_W
+SELECTCASE Z2_W
+CASE "north", "n"
+    RETURNF DIR_NORTH
+CASE "east", "e"
+    RETURNF DIR_EAST
+CASE "west", "w"
+    RETURNF DIR_WEST
+CASE "south", "s"
+    RETURNF DIR_SOUTH
+CASE "northeast", "ne"
+    RETURNF DIR_NE
+CASE "northwest", "nw"
+    RETURNF DIR_NW
+CASE "southeast", "se"
+    RETURNF DIR_SE
+CASE "southwest", "sw"
+    RETURNF DIR_SW
+CASE "up", "u"
+    RETURNF DIR_UP
+CASE "down", "d"
+    RETURNF DIR_DOWN
+CASE "in"
+    RETURNF DIR_IN
+CASE "out"
+    RETURNF DIR_OUT
+ENDSELECT
+RETURNF -1
+
+; gverbs.zil V-WALK. PRSO is the direction property (P?NORTH 31 .. P?CROSS 18).
+@Z2R_V_WALK(Z2_RARG = 0)
+#DIM DYNAMIC Z2_RARG
+IF !Z2_P_WALK_DIR
+    CALL Z2_PERFORM, V_WALK_TO, Z2_PRSO
+    RETURN 1
+ENDIF
+CALL Z2_WALK, 31 - Z2_PRSO
+RETURN RESULT
+
+@Z2_WALK(Z2_D)
+#DIM DYNAMIC Z2_D
+#DIM DYNAMIC Z2_K
+Z2_K = Z2_EXIT_KIND:Z2_HERE:Z2_D
+SELECTCASE Z2_K
+CASE 1
+    CALL Z2R_GOTO, Z2_EXIT_TO:Z2_HERE:Z2_D
+    RETURN RESULT
+CASE 2
+    PRINTFORML %Z2_EXIT_MSG:Z2_HERE:Z2_D%
+    RETURN M_FATAL
+CASE 3
+    CALL Z2_FEXIT, Z2_HERE, Z2_D
+    IF RESULT
+        CALL Z2R_GOTO, RESULT
+        RETURN RESULT
+    ENDIF
+    RETURN M_FATAL
+CASE 4
+    IF Z2_GLOBAL:(Z2_EXIT_ARG:Z2_HERE:Z2_D)
+        CALL Z2R_GOTO, Z2_EXIT_TO:Z2_HERE:Z2_D
+        RETURN RESULT
+    ELSEIF Z2_EXIT_MSG:Z2_HERE:Z2_D != ""
+        PRINTFORML %Z2_EXIT_MSG:Z2_HERE:Z2_D%
+    ELSE
+        PRINTL You can't go that way.
+    ENDIF
+    RETURN M_FATAL
+CASE 5
+    IF Z2_ATTR:(Z2_EXIT_ARG:Z2_HERE:Z2_D):F_OPENBIT
+        CALL Z2R_GOTO, Z2_EXIT_TO:Z2_HERE:Z2_D
+        RETURN RESULT
+    ELSEIF Z2_EXIT_MSG:Z2_HERE:Z2_D != ""
+        PRINTFORML %Z2_EXIT_MSG:Z2_HERE:Z2_D%
+    ELSE
+        PRINTFORML The %Z2_NAME:(Z2_EXIT_ARG:Z2_HERE:Z2_D)% is closed.
+        Z2_P_IT_OBJECT = Z2_EXIT_ARG:Z2_HERE:Z2_D
+    ENDIF
+    RETURN M_FATAL
+ENDSELECT
+IF !Z2_LITQ && Z2_PROB(80) && Z2_WINNER == O_ADVENTURER && !Z2_ATTR:Z2_HERE:F_NONLANDBIT
+    IF Z2_GLOBAL:G_SPRAYEDQ
+        PRINTL There are odd noises in the darkness, and there is no exit in that
+        PRINTL direction.
+        RETURN M_FATAL
+    ENDIF
+    CALL Z2R_JIGS_UP, "Oh, no! You have walked into the slavering fangs of a lurking grue!"
+    RETURN RESULT
+ENDIF
+PRINTL You can't go that way.
+RETURN M_FATAL
+
+; FEXIT routines (the exit property names the routine; it returns a room or 0).
+@Z2_FEXIT(Z2_RM, Z2_D)
+#DIM DYNAMIC Z2_RM
+#DIM DYNAMIC Z2_D
+CALL Z2_APPLY, Z2_FEXIT_R:Z2_RM:Z2_D
+RETURN RESULT
+

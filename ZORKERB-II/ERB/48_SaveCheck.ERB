@@ -1,0 +1,86 @@
+﻿; Consistency check of a loaded save (RESTORE, 46_Verbs Z2_RESTORE_SLOT).
+; Read-only: nothing is repaired. A save whose tag is right but whose content
+; is damaged fails here; RESTORE then rolls back (02_Flow EVENTLOAD). The
+; checks follow the invariants the story's own state always satisfies:
+;   object tree  every parent/sibling/child is 0..251; each object with a
+;                parent appears exactly once in that parent's child chain;
+;                objects without a parent have no sibling; no cycles
+;   attributes   0 or 1
+;   clock        0..30 entries, routines INT 1..23 each at most once,
+;                enabled 0 or 1
+;   globals      HERE and WINNER are objects; MOVES and SCORE are numbers
+;                within the story's word range
+;   parser       lexv word count 0..59 (the story's P-LEXV holds 59)
+@Z2_SAVE_VALID
+#DIM DYNAMIC Z2_O
+#DIM DYNAMIC Z2_X
+#DIM DYNAMIC Z2_K
+#DIM DYNAMIC Z2_N
+#DIM DYNAMIC Z2_SEEN, 256
+FOR Z2_O, 0, 256
+    SIF Z2_PARENT:Z2_O < 0 || Z2_PARENT:Z2_O > 251 || Z2_SIBLING:Z2_O < 0 || Z2_SIBLING:Z2_O > 251
+        RETURN 0
+    SIF Z2_CHILD:Z2_O < 0 || Z2_CHILD:Z2_O > 251
+        RETURN 0
+    IF Z2_O == 0 || Z2_O > 251
+        SIF Z2_PARENT:Z2_O || Z2_SIBLING:Z2_O || Z2_CHILD:Z2_O
+            RETURN 0
+    ENDIF
+    FOR Z2_K, 0, 32
+        SIF Z2_ATTR:Z2_O:Z2_K != 0 && Z2_ATTR:Z2_O:Z2_K != 1
+            RETURN 0
+    NEXT
+NEXT
+; child chains
+FOR Z2_O, 1, 252
+    Z2_X = Z2_CHILD:Z2_O
+    Z2_N = 0
+    WHILE Z2_X
+        Z2_N += 1
+        SIF Z2_N > 251 || Z2_SEEN:Z2_X || Z2_PARENT:Z2_X != Z2_O
+            RETURN 0
+        Z2_SEEN:Z2_X = 1
+        Z2_X = Z2_SIBLING:Z2_X
+    WEND
+NEXT
+FOR Z2_O, 1, 252
+    IF Z2_PARENT:Z2_O
+        SIF !Z2_SEEN:Z2_O
+            RETURN 0
+    ELSE
+        SIF Z2_SIBLING:Z2_O
+            RETURN 0
+    ENDIF
+    ; no cycle through parents
+    Z2_X = Z2_PARENT:Z2_O
+    Z2_N = 0
+    WHILE Z2_X
+        Z2_N += 1
+        SIF Z2_X == Z2_O || Z2_N > 251
+            RETURN 0
+        Z2_X = Z2_PARENT:Z2_X
+    WEND
+NEXT
+; clock
+SIF Z2_CINT_N < 0 || Z2_CINT_N > 30
+    RETURN 0
+FOR Z2_K, 0, Z2_CINT_N
+    SIF Z2_CINT_RTN:Z2_K < 1 || Z2_CINT_RTN:Z2_K > 23
+        RETURN 0
+    SIF Z2_CINT_ON:Z2_K != 0 && Z2_CINT_ON:Z2_K != 1
+        RETURN 0
+    SIF Z2_CINT_TICK:Z2_K < -32768 || Z2_CINT_TICK:Z2_K > 32767
+        RETURN 0
+    FOR Z2_X, 0, Z2_K
+        SIF Z2_CINT_RTN:Z2_X == Z2_CINT_RTN:Z2_K
+            RETURN 0
+    NEXT
+NEXT
+; globals and parser
+SIF Z2_HERE < 1 || Z2_HERE > 251 || Z2_WINNER < 1 || Z2_WINNER > 251
+    RETURN 0
+SIF Z2_MOVES < 0 || Z2_MOVES > 32767 || Z2_SCORE < -32768 || Z2_SCORE > 32767
+    RETURN 0
+SIF Z2_LEXWORDS < 0 || Z2_LEXWORDS > 59
+    RETURN 0
+RETURN 1

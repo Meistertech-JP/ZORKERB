@@ -1,8 +1,14 @@
 # Changelog
 
-各版の主な変更です。r29 の詳細は [RELEASE_NOTES.md](RELEASE_NOTES.md)、
+各版の主な変更です。r30 と r29 の詳細は [RELEASE_NOTES.md](RELEASE_NOTES.md) にあります。
 
-Main changes by revision. See [RELEASE_NOTES.md](RELEASE_NOTES.md) for r29.
+Main changes by revision. See [RELEASE_NOTES.md](RELEASE_NOTES.md) for r30 and r29.
+
+## r30
+
+- 実行エンジンを PyEmuera 3.0.0 正式版（未改変）に更新。ゲームの処理は r29 と同じで、タイトル表示だけが r30 になります / Engine updated to the PyEmuera 3.0.0 release (unmodified). The game is the same as r29; only the title line says r30
+- r29 のセーブをそのまま読み込めます（セーブ形式29） / Saves from r29 load unchanged (save format 29)
+- 最終検証を 3.0.0 でやり直し、r29 と同じ結果 / Final verification repeated on 3.0.0 with the same results as r29
 
 ## r29
 

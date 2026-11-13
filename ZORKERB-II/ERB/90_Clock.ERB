@@ -1,0 +1,68 @@
+﻿; gclock.zil (identical in Zork I and II): QUEUE, INT, ENABLE/DISABLE, CLOCKER.
+; Interrupt routines are numbered (INT_*); Z2_INT_NAME gives the ZIL routine.
+
+; INT: the entry for RTN, created at the front of the table when missing.
+@Z2_INT(Z2_RTN)
+#FUNCTION
+#DIM DYNAMIC Z2_RTN
+#DIM DYNAMIC Z2_I
+FOR Z2_I, 0, Z2_CINT_N
+    SIF Z2_CINT_RTN:Z2_I == Z2_RTN
+        RETURNF Z2_I
+NEXT
+Z2_CINT_RTN:Z2_CINT_N = Z2_RTN
+Z2_CINT_TICK:Z2_CINT_N = 0
+Z2_CINT_ON:Z2_CINT_N = 0
+Z2_CINT_N += 1
+RETURNF Z2_CINT_N - 1
+
+; QUEUE sets the tick; ENABLE sets the enabled word. <ENABLE <QUEUE R N>> is
+; Z2_QUEUE with Z2_ON = 1.
+@Z2_QUEUE(Z2_RTN, Z2_TICK, Z2_ON)
+#DIM DYNAMIC Z2_RTN
+#DIM DYNAMIC Z2_TICK
+#DIM DYNAMIC Z2_ON
+#DIM DYNAMIC Z2_I
+Z2_I = Z2_INT(Z2_RTN)
+Z2_CINT_TICK:Z2_I = Z2_TICK
+SIF Z2_ON
+    Z2_CINT_ON:Z2_I = 1
+
+@Z2_DISABLE(Z2_RTN)
+#DIM DYNAMIC Z2_RTN
+Z2_CINT_ON:(Z2_INT(Z2_RTN)) = 0
+
+; CLOCKER: from the front of the table (newest) to the end; an enabled entry
+; with a non-zero tick counts down and runs when it was 1 or less. MOVES
+; advances last. Returns true if an interrupt routine returned true.
+@Z2_CLOCKER
+#DIM DYNAMIC Z2_I
+#DIM DYNAMIC Z2_T
+#DIM DYNAMIC Z2_FLG
+IF Z2_GLOBAL:G_CLOCK_WAIT
+    Z2_GLOBAL:G_CLOCK_WAIT = 0
+    RETURN 0
+ENDIF
+Z2_I = Z2_CINT_N - 1
+WHILE Z2_I >= 0
+    IF Z2_CINT_ON:Z2_I
+        Z2_T = Z2_CINT_TICK:Z2_I
+        IF Z2_T != 0
+            Z2_CINT_TICK:Z2_I = Z2_T - 1
+            IF Z2_T <= 1
+                CALL Z2_APPLY, Z2_INT_NAME:(Z2_CINT_RTN:Z2_I)
+                SIF RESULT
+                    Z2_FLG = 1
+            ENDIF
+        ENDIF
+    ENDIF
+    Z2_I -= 1
+WEND
+Z2_MOVES += 1
+RETURN Z2_FLG
+
+; gmacros PROB with one argument: <G? BASE <RANDOM 100>>.
+@Z2_PROB(Z2_BASE)
+#FUNCTION
+#DIM DYNAMIC Z2_BASE
+RETURNF Z2_BASE > Z2_RANDOM(100)

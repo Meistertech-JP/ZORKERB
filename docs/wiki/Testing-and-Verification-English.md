@@ -2,104 +2,89 @@
 
 # Verification
 
-The environment, methods, scope and results of the verification of ZORKERB r29.
+The environment, methods, scope and results of the verification of ZORKERB I and ZORKERB II.
 
-The verification tools, test data, comparison interpreter, original story and raw reports are kept in the private development repository. This page summarises the confirmed results from those records.
+The tools, test data, comparison interpreter, original story files and raw reports are kept in the private development repository. This page summarizes only confirmed results from those records. The results cover what was tested; they do not guarantee identical behaviour on every path of the originals.
 
 ## Environment
 
-| Item | Value |
+| Item | Details |
 | --- | --- |
-| Engine | PyEmuera 3.0.0b2, unmodified (SHA-256 `8473b250080ba678e05b4f484fcc6790f96614c2e9a7aaab077ab379e05f4bcb`), the same file that is included here |
-| OS and Python | Linux x86_64, Python 3.13 |
-| Reference | The original story (Release 119 / Serial 880429, SHA-256 `37084966477dff679282de42974b2077156b1bd68fad92a65d4ea94d8eb64d79`) run under Frotz 2.56pre (dumb interface) |
+| Engine | PyEmuera 3.0.0 (unmodified, SHA-256 `8a7b3697b97155c4dc994c8349c6756bb0401000d3bbccd8e85ff046e3774b35`), the engine used for these recorded results |
+| System and Python | Linux x86_64, Python 3.13 |
+| Reference (I) | the original story (Release 119 / Serial 880429, SHA-256 `37084966477dff679282de42974b2077156b1bd68fad92a65d4ea94d8eb64d79`) |
+| Reference (II) | the original story (Release 63 / Serial 860811, SHA-256 `3ae7d5558943e9721f3e4b273c8a7faec1a03a604e1ae4ee1cde472c21cb24ac`) |
+| Interpreter for the originals | Frotz 2.56pre (dumb interface; the same executable for the included games) |
 
-On Emuera 1.824 (Windows), start-up and the first five moves were observed and matched the original. The regression tests and comparisons with the original were run under PyEmuera 3.0.0b2, not under Emuera.
+Checks on the native Emuera (Windows) are in [Compatibility and limitations](Compatibility-and-Limitations-English).
 
-## Methods
+## Methods (the included games)
 
 ### One frozen run
 
-All checks run in a single pass:
-
-1. At the start, the SHA-256 of the sources, tests and tools, the generated game and the engine are recorded.
-2. Every check runs.
-3. At the end, the run confirms that nothing has changed since step 1.
-
-Any change to the sources means starting again from the beginning.
-
-### Regression tests
-
-1,596 cases run under the unmodified PyEmuera. The checks cover:
-
-- text that must or must not appear in the output;
-- state such as moves, score, object locations and flags;
-- the contents of saves and the state after saving and restoring.
-
-Expected results are based on the original game's responses and the source. The 38 expectations corrected in r29 were each confirmed by replaying the same input in the original.
+1. At the start, the SHA-256 of the sources, tests, tools, built game and engine are recorded.
+2. All checks run.
+3. At the end, nothing may have changed from the recorded values. A source change means starting over.
 
 ### Comparison with the original
 
-The same input goes to the original and to ZORKERB. Each response is compared, then the state saved at the end.
+The same input is given to the original and the port, and each move's response is compared.
 
-- **Aligned random sequence:** every case starts with the original's debugging command `#random 997`. Both programs then draw the same random numbers, so text and state can be compared exactly. Completion is judged on these comparisons.
-- **Fixed seed:** a fixed seed alone does not give PyEmuera and Frotz the same random sequence. These results are recorded for reference.
-- **Text normalisation:** only ASCII whitespace, including line breaks, and Frotz's hyphenated line wrapping are normalised. Wording is never normalised.
-- **State comparison:** uses these values read from a save:
-  - current location, score and moves;
-  - the order of the inventory;
-  - the parent/child relations and flags of the tracked objects;
-  - IT.
+- **Aligned random sequences:** the input starts with the originals' debugging command `#random` *number*, so both draw the same sequence, and text and state are compared exactly. Completion is judged on this comparison.
+- **Text normalization:** only ASCII whitespace (including where lines break) and Frotz's hyphenated line breaks. No wording is normalized.
+- **State comparison:** location, score, moves, inventory order, selected object parents and flags, and IT, read from saves. This does not compare the whole memory.
+- **State comparison:** before every input, the original's memory (all 251 object locations and attributes, globals, clock) against the port. Exclusions and reasons are recorded; the whole memory is not compared.
 
-  It does not establish that the whole memory is identical.
-
-### Probes and the full route
-
-- **Probes:** input sequences that compare specific scenes with the original step by step. They cover the Loud Room, the boat, the rope, the machine, every syntax line, and long sequences per region.
-- **Full route:** a long treasure-collecting route compared step by step with the random sequence aligned.
-
-### Complete game with ordinary input
-
-559 inputs play from a new game to the ending. They use no SAVE, no RESTORE and no verification-only command.
-
-## Results
+## ZORKERB I results
 
 | Check | Result |
 | --- | --- |
-| Regression tests | 1,596 of 1,596 pass (7,033 conditions, 1,985 state checks) |
-| Save rejection | Pass: saves from r1–r19, r21–r25, r27 and r28, and deliberately corrupted saves, are rejected |
-| Unit tests of the verification tools | 306 pass |
-| Syntax tables | Equal to the tables read from the original story |
-| Comparison with the original (aligned random sequence, 801 cases) | See below |
-| Probes (41, 10,324 steps) | 10,320 steps exactly equal; 2 differ only in the save/restore file-name prompt; 2 are inputs over 120 characters |
-| Full route (557 steps) | All 557 steps exactly equal |
-| Complete game with ordinary input | Ending reached with 350 points in 613 moves |
-| Mapping of source ROUTINEs | GAP 0 (VERIFIED 175, IMPLEMENTED 265, UNREFERENCED 1) |
+| Regression tests | 1,596 of 1,596 PASS (7,033 assertions, 1,985 state checks). Expectations rest on the original's responses and the source |
+| Save rejection | PASS: saves of r1–r19, r21–r25, r27, r28 and deliberately damaged saves are rejected |
+| Unit tests of the tools | 306 PASS |
+| Syntax table | equal to the table read from the original story |
+| Comparison with the original (aligned, 801 runs) | table below |
+| Probes (41, 10,324 moves) | 10,320 exactly equal; 2 differ in the file-name prompt of SAVE and RESTORE; 2 are inputs over 120 characters |
+| Full route (557 moves) | all 557 exactly equal |
+| Ordinary-input playthrough | the endgame at 350 points in 613 moves, without SAVE, RESTORE or debugging commands |
+| Routine mapping | GAP 0 (VERIFIED 175, IMPLEMENTED 265, UNREFERENCED 1); see the [ZIL to ERB mapping](Original-Source) (Japanese) |
 
-### Comparison with the original by set
-
-| Set | Cases | Text exactly equal | State equal |
+| Set | Runs | Text exactly equal | State equal |
 | --- | ---: | ---: | ---: |
 | pseudo | 56 | 56 | 56 |
 | holdout | 62 | 62 | 62 |
 | edges | 24 | 24 | 24 |
-| older (18 sets from earlier revisions) | 659 | 657 | 657 |
+| older (18 sets of earlier revisions) | 659 | 657 | 657 |
 
-The other 2 cases in "older" use `examine it` while IT refers to object 0. The original then runs `get_parent` and `test_attr` on object 0, and a strict interpreter stops.
+The two remaining older runs use `examine it` while IT points at object 0. The original then runs instructions on object 0, and a strict interpreter stops there. Rerun on a lenient interpreter (Frotz `-Z 1`), text, number of responses and state agree apart from the interpreter's warning line. These two are not counted as exact matches.
 
-- Rerun under a permissive interpreter (Frotz `-Z 1`), text, number of responses and state agree with ZORKERB, apart from the interpreter's warning lines.
-- The steps before the stop (31 and 8) are exactly equal.
-- These 2 cases are not counted as exact matches.
+## ZORKERB II results
 
-With a fixed seed, text was exactly equal in 69 of 142 cases and state in 142 of 142. The same 142 cases agree completely in text and state when the random sequence is aligned, so the text differences under a fixed seed are attributed to the different random sequences.
+| Check | Result |
+| --- | --- |
+| Comparison with the original | the same text in 240 runs, 74,130 compared steps |
+| Random numbers | 47,650 random calls agree in order, value and calling routine (predictable mode, every value compared) |
+| State | at 74,114 points, the state read from the original's memory equals the port's |
+| Playthrough | the 400-point route completed |
+| Saving and restoring | saving in 10 slots and restoring in a new process; the comparison with the original's SAVE and RESTORE agrees |
+| Routine mapping | every one of the original's 439 routines has an implementation (370 generated from the ZIL, the rest written by hand) |
+| Spells and interrupts | all 12 spells and all 23 clock interrupts reached in tests |
+| Branch coverage | 1,689 of the 2,648 ERB branches (63.8%) reached; the others are listed in the development records |
 
-## Archive checks
+### Independent audits
 
-The distributed files were checked for:
+An auditor separate from the developer checked:
 
-- the SHA-256, CRC and SHA256SUMS of the ZIP;
-- no duplicate entries, unsafe paths or unwanted files;
-- `ERB/` and `CSV/` byte-identical to the verified game;
-- relative links in the documents resolving inside the distribution;
-- the extracted distribution alone running this sequence: new game → take the leaflet → `save 0` → drop it → `restore 0` → the leaflet is held again → RESTART → SCORE → QUIT;
-- the extracted distribution alone playing the 350-point route to the ending.
+| Audit | Result |
+| --- | --- |
+| The distribution | PASS: SHA-256 of the files, the included notices, the static check, the 400-point route in the extracted game, three save formats, restoring slots 0–9 in separate processes |
+| Direct comparison with the original | the auditor ran the pinned original story on Frotz afresh: 10 routes, all 1,718 responses equal |
+| Rebuild from the original ZIL | regenerated from the ZIL and the story: the 8 generated files and the 23 game files of the distribution are byte-identical (the same in two runs) |
+| Recount of the records | 47,650 random draws and 74,114 state points recounted without the developer's tools: equal |
+
+## Checks of the distribution
+
+- The ZIP's SHA-256, `SHA256SUMS.txt` inside it, and no duplicate, unsafe or development file
+- Each game's `ERB/` and `CSV/` byte-identical to the verified game; the included PyEmuera has the SHA-256 above
+- Relative links in the documents resolve inside the distribution
+- In the extracted distribution, the commands of the included start batches start each game

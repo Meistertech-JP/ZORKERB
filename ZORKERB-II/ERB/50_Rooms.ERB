@@ -1,0 +1,14 @@
+﻿; Room and object ACTION routines are named Z2R_<ZIL name> ("-" -> "_",
+; "?" -> "Q") and applied through Z2_APPLY (45_Main).
+@Z2_ROOM_ACTION(Z2_RARG)
+#DIM DYNAMIC Z2_RARG
+CALL Z2_APPLY, Z2_ACTION_R:Z2_HERE, Z2_RARG
+RETURN RESULT
+
+@Z2_ROOM_PORTED(Z2_R)
+#FUNCTION
+#DIM DYNAMIC Z2_R
+SIF Z2_ACTION_R:Z2_R == ""
+    RETURNF 1
+RETURNF STRFIND(Z2_PORTED_NAMES, "|Z2R_" + Z2_RNAME(Z2_ACTION_R:Z2_R) + ":") >= 0
+

@@ -2,58 +2,66 @@
 
 # Developer guide
 
-This guide covers the layout of this distribution and how to read, change and try out the ERB code. See [Architecture](Architecture-English) for the structure of the implementation.
+The layout of the distribution and how to read, change and try out the ERB code.
 
 ## Layout
 
 ```text
-ERB/                      the game (ERB and ERH)
-CSV/GameBase.csv          game title, code and version
-PyEmuera-3.0.0b2.pyz      the engine, unmodified
-docs/                     user and developer documents, wiki sources
-licenses/                 Zork I and PyEmuera licenses and notices
+PyEmuera-3.0.0.pyz        the engine, unmodified, shared by the included games
+ZORKERB-I/ERB/, CSV/      ZORKERB I: the game
+ZORKERB-I/docs/           ZORKERB I: implementation notes (architecture, source mapping)
+ZORKERB-II/ERB/, CSV/     ZORKERB II: the game
+docs/                     documents common to the included games
+licenses/                 licenses and notices
 ```
-
-## Kinds of ERB files
-
-| Kind | Files | Notes |
-| --- | --- | --- |
-| Generated | `00_Ids.ERH`, `10_World.ERB`, `38_ParserTables.ERB` | Generated from the room and object definitions and from the dictionary and syntax table read from the original story. Editing them by hand can break the numbering and tables that other files rely on. |
-| State declarations | `01_State.ERH` | The SAVEDATA variables make up save format 29. Adding or changing them breaks compatibility with existing saves. |
-| Everything else | `02_Flow.ERB` to `91_Forest.ERB` | Hand-written source. Comments near the code name the corresponding ZIL routines. |
 
 ERB and ERH files are UTF-8 with a byte order mark.
 
+## Generated and hand-written files
+
+| Game | Generated | Everything else |
+| --- | --- | --- |
+| ZORKERB I | `00_Ids.ERH`, `10_World.ERB`, `38_ParserTables.ERB` (from the room and object definitions and the dictionary and syntax table read from the original story) | Hand-written source. Comments near the code name the corresponding ZIL routines |
+| ZORKERB II | `00_Ids.ERH`, `10_World.ERB`, `79_Gen_Ints.ERB`/`.ERH`, `80_Gen_GVerbs.ERB` to `83_Gen_2Actions.ERB` (from the original ZIL and story; each file names its source at the top) | Hand-written source (parser, display, save checks, clock and so on) |
+
+Editing generated files by hand can break the numbering and tables other files rely on. The generators are in the private development repository.
+
 ## Running and checking
+
+Run these in the folder containing `PyEmuera-3.0.0.pyz`.
 
 Start the game:
 
 ```console
-python PyEmuera-3.0.0b2.pyz .
+python3 PyEmuera-3.0.0.pyz ZORKERB-I
 ```
 
 Run PyEmuera's static check (the game is not run):
 
 ```console
-python PyEmuera-3.0.0b2.pyz . --check
+python3 PyEmuera-3.0.0.pyz ZORKERB-I --check
 ```
 
-Run with input from a file. The first line is the title-screen choice (`0`); each following line is one command:
+Run with input from a file. The first line is the title-screen choice (`0`); then one command per line:
 
 ```console
-python PyEmuera-3.0.0b2.pyz . --inputs replay.txt --no-wait
+python3 PyEmuera-3.0.0.pyz ZORKERB-I --inputs replay.txt --no-wait
 ```
 
-With `--inputs`, PyEmuera shows no input line; only the game's output and the echoed input appear. `--seed` *n* fixes the engine's random numbers. To get the original game's random sequence, start the game input with a command such as `#random 997`.
+With `--inputs`, PyEmuera shows no input prompt; only the game's output and an echo of the input appear. `--seed` *number* fixes the random numbers. For the original's random sequence, make a command such as `#random 997` the game's first input.
 
-For other PyEmuera features, see `python PyEmuera-3.0.0b2.pyz --help` and the PyEmuera documentation.
+See `python3 PyEmuera-3.0.0.pyz --help` and the PyEmuera documentation for its other features.
 
-## When changing the code
+## Notes on changes
 
-- **Keep the original behaviour.** Responses and the order of processing follow the original ZIL source, which is available at https://github.com/historicalsource/zork1/tree/97b7b3d68c075dd9af7da499c3e9690ada3471fd.
-- **Keep the random draws.** Random numbers are drawn only through `Z_RANDOM` in `03_Random.ERB`. Changing where or in which order they are drawn breaks the match with the original's random sequence.
-- **Keep save compatibility.** When you change SAVEDATA variables, review the checks in `@EVENTLOAD` and the value of `Z_SCHEMA`.
+- **Keep the original logic:** responses and the order of processing follow the original ZIL. Where to find it: [Sources](https://github.com/Meistertech-JP/ZORKERB/blob/main/docs/SOURCES.md).
+- Keep random draws through `Z_RANDOM` in `03_Random.ERB`, in the same places and order.
+- Keep random draws through `Z2_RANDOM` in `03_Random.ERB`, in the same places and order.
+- **Keep saves compatible:** changing the SAVEDATA variables (`01_State.ERH`) breaks existing saves; review the checks in `@EVENTLOAD` too.
+
+Implementation: [architecture](Architecture-English), [ZIL to ERB mapping](Original-Source).
+Implementation: [ZORKERB II README](ZORKERB-II-English).
 
 ## Verification
 
-r29 was verified with test and comparison tools kept in the private development repository. This distribution does not include those tools, the original story file or the comparison interpreter. The methods and confirmed results are in [Verification](Testing-and-Verification-English).
+Verification used test and comparison tools in the private development repository. The distribution contains neither those tools, nor the original story files, nor the comparison interpreter. Methods and results: [Verification](Testing-and-Verification-English).

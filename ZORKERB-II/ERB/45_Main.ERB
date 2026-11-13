@@ -1,0 +1,308 @@
+﻿; gmain.zil MAIN-LOOP-1 and PERFORM (the PREDGEN form compiled into r63,
+; gmain.zap), and APPLY of ZIL routines by name.
+; A ZIL routine NAME is ported as @Z2R_NAME ("-" -> "_", "?" -> "Q"). Its
+; RETURN value is the ZIL value: 0 false, 1 true, 2 M-FATAL (RFATAL).
+
+@Z2_RNAME(Z2_S)
+#FUNCTIONS
+#DIMS DYNAMIC Z2_S
+RETURNF REPLACE(REPLACE(Z2_S, "-", "_"), "\\?", "Q")
+
+; APPLY: an empty name is <APPLY <>> (false). Every routine named by the story
+; data is ported; a missing one would be an internal error and is reported.
+@Z2_APPLY(Z2_NM, Z2_ARG = -99999)
+#DIMS DYNAMIC Z2_NM
+#DIM DYNAMIC Z2_ARG
+#DIMS DYNAMIC Z2_F
+#DIM DYNAMIC Z2_AT
+SIF Z2_NM == ""
+    RETURN 0
+Z2_F '= "Z2R_" + Z2_RNAME(Z2_NM)
+Z2_AT = STRFIND(Z2_PORTED_NAMES, "|" + Z2_F + ":")
+IF Z2_AT < 0
+    PRINTFORML [ZORKERB II internal error: routine %Z2_NM% is missing.]
+    RETURN 0
+ENDIF
+RESULT = 0
+; With no argument the routine's own OPTIONAL defaults apply. A ZIL routine
+; without parameters ignores an APPLY argument (e.g. M-BEG for a vehicle's
+; action); ERB would reject it, so it is called without one.
+IF Z2_ARG == -99999 || SUBSTRING(Z2_PORTED_NAMES, Z2_AT + STRLENS(Z2_F) + 2, 1) == "0"
+    CALLFORM %Z2_F%
+ELSE
+    CALLFORM %Z2_F%, Z2_ARG
+ENDIF
+RETURN RESULT
+
+@Z2_VERBQ(Z2_A)
+#FUNCTION
+#DIM DYNAMIC Z2_A
+RETURNF Z2_PRSA == Z2_A
+
+; PERFORM (A O I)
+@Z2_PERFORM(Z2_A, Z2_O = 0, Z2_I = 0)
+#DIM DYNAMIC Z2_A
+#DIM DYNAMIC Z2_O
+#DIM DYNAMIC Z2_I
+#DIM DYNAMIC Z2_V
+#DIM DYNAMIC Z2_OA
+#DIM DYNAMIC Z2_OO
+#DIM DYNAMIC Z2_OI
+Z2_OA = Z2_PRSA
+Z2_OO = Z2_PRSO
+Z2_OI = Z2_PRSI
+IF (Z2_I == O_IT || Z2_O == O_IT) && !Z2_ACCESSIBLE(Z2_P_IT_OBJECT)
+    PRINTL I don't see what you are referring to.
+    RETURN M_FATAL
+ENDIF
+SIF Z2_O == O_IT
+    Z2_O = Z2_P_IT_OBJECT
+SIF Z2_I == O_IT
+    Z2_I = Z2_P_IT_OBJECT
+Z2_PRSA = Z2_A
+Z2_PRSO = Z2_O
+SIF Z2_PRSO && Z2_PRSI != O_IT && Z2_PRSA != V_WALK
+    Z2_P_IT_OBJECT = Z2_PRSO
+Z2_PRSI = Z2_I
+Z2_V = 0
+IF Z2_PRSO == O_NOT_HERE_OBJECT || Z2_PRSI == O_NOT_HERE_OBJECT
+    CALL Z2R_NOT_HERE_OBJECT_F
+    Z2_V = RESULT
+ENDIF
+IF !Z2_V
+    Z2_O = Z2_PRSO
+    Z2_I = Z2_PRSI
+    CALL Z2_APPLY, Z2_ACTION_R:Z2_WINNER
+    Z2_V = RESULT
+    IF !Z2_V
+        CALL Z2_APPLY, Z2_ACTION_R:(Z2_PARENT:Z2_WINNER), M_BEG
+        Z2_V = RESULT
+    ENDIF
+    IF !Z2_V
+        CALL Z2_APPLY, Z2_PREACT_NAME:Z2_A
+        Z2_V = RESULT
+    ENDIF
+    IF !Z2_V && Z2_I
+        CALL Z2_APPLY, Z2_ACTION_R:Z2_I
+        Z2_V = RESULT
+    ENDIF
+    IF !Z2_V && Z2_O && Z2_A != V_WALK && Z2_PARENT:Z2_O
+        CALL Z2_APPLY, Z2_CONTFCN_R:(Z2_PARENT:Z2_O)
+        Z2_V = RESULT
+    ENDIF
+    IF !Z2_V && Z2_O && Z2_A != V_WALK
+        CALL Z2_APPLY, Z2_ACTION_R:Z2_O
+        Z2_V = RESULT
+    ENDIF
+    IF !Z2_V
+        CALL Z2_APPLY, Z2_ACT_NAME:Z2_A
+        Z2_V = RESULT
+    ENDIF
+ENDIF
+Z2_PRSA = Z2_OA
+Z2_PRSO = Z2_OO
+Z2_PRSI = Z2_OI
+RETURN Z2_V
+
+; MAIN-LOOP-1
+@Z2_MAIN_LOOP_1
+#DIM DYNAMIC Z2_ICNT
+#DIM DYNAMIC Z2_OCNT
+#DIM DYNAMIC Z2_NUM
+#DIM DYNAMIC Z2_CNT
+#DIM DYNAMIC Z2_OBJ
+#DIM DYNAMIC Z2_TBL
+#DIM DYNAMIC Z2_V
+#DIM DYNAMIC Z2_PTBL
+#DIM DYNAMIC Z2_OBJ1
+#DIM DYNAMIC Z2_TMP
+#DIM DYNAMIC Z2_OO
+#DIM DYNAMIC Z2_II
+#DIM DYNAMIC Z2_ALLQ
+Z2_CNT = 0
+Z2_OBJ = 0
+Z2_PTBL = 1
+CALL Z2_PARSER
+Z2_P_WON = RESULT
+SIF Z2_QUIT
+    RETURN 0
+IF Z2_P_WON
+    Z2_ICNT = Z2_MT:MT_PRSI:0
+    Z2_OCNT = Z2_MT:MT_PRSO:0
+    IF Z2_P_IT_OBJECT && Z2_ACCESSIBLE(Z2_P_IT_OBJECT)
+        Z2_TMP = 0
+        FOR Z2_CNT, 1, Z2_ICNT + 1
+            IF Z2_MT:MT_PRSI:Z2_CNT == O_IT
+                Z2_MT:MT_PRSI:Z2_CNT = Z2_P_IT_OBJECT
+                Z2_TMP = 1
+                BREAK
+            ENDIF
+        NEXT
+        IF !Z2_TMP
+            FOR Z2_CNT, 1, Z2_OCNT + 1
+                IF Z2_MT:MT_PRSO:Z2_CNT == O_IT
+                    Z2_MT:MT_PRSO:Z2_CNT = Z2_P_IT_OBJECT
+                    BREAK
+                ENDIF
+            NEXT
+        ENDIF
+        Z2_CNT = 0
+    ENDIF
+    IF Z2_OCNT == 0
+        Z2_NUM = 0
+    ELSEIF Z2_OCNT > 1
+        Z2_TBL = MT_PRSO
+        IF Z2_ICNT == 0
+            Z2_OBJ = 0
+        ELSE
+            Z2_OBJ = Z2_MT:MT_PRSI:1
+        ENDIF
+        Z2_NUM = Z2_OCNT
+    ELSEIF Z2_ICNT > 1
+        Z2_PTBL = 0
+        Z2_TBL = MT_PRSI
+        Z2_OBJ = Z2_MT:MT_PRSO:1
+        Z2_NUM = Z2_ICNT
+    ELSE
+        Z2_NUM = 1
+    ENDIF
+    SIF !Z2_OBJ && Z2_ICNT == 1
+        Z2_OBJ = Z2_MT:MT_PRSI:1
+    Z2_V = 0
+    IF Z2_PRSA == V_WALK && Z2_P_WALK_DIR != 0
+        CALL Z2_PERFORM, Z2_PRSA, Z2_PRSO
+        Z2_V = RESULT
+    ELSEIF Z2_NUM == 0
+        IF (Z2_SYN_GET(0) & 3) == 0
+            CALL Z2_PERFORM, Z2_PRSA
+            Z2_V = RESULT
+            Z2_PRSO = 0
+        ELSEIF !Z2_LITQ
+            PRINTL It's too dark to see.
+        ELSE
+            PRINTL It's not clear what you're referring to.
+            Z2_V = 0
+        ENDIF
+    ELSE
+        Z2_P_NOT_HERE = 0
+        Z2_P_MULT = Z2_NUM > 1
+        Z2_TMP = 0
+        Z2_ALLQ = Z2_ITBL:P_NC1 && Z2_LXD:(Z2_ITBL:P_NC1) == W_ALL
+        WHILE 1
+            Z2_CNT += 1
+            IF Z2_CNT > Z2_NUM
+                IF Z2_P_NOT_HERE > 0
+                    PRINTS "The "
+                    SIF Z2_P_NOT_HERE != Z2_NUM
+                        PRINTS "other "
+                    PRINTS "object"
+                    SIF Z2_P_NOT_HERE != 1
+                        PRINTS "s"
+                    PRINTS " that you mentioned "
+                    IF Z2_P_NOT_HERE != 1
+                        PRINTS "are"
+                    ELSE
+                        PRINTS "is"
+                    ENDIF
+                    PRINTL n't here.
+                ELSEIF !Z2_TMP
+                    PRINTL There's nothing here you can take.
+                ENDIF
+                BREAK
+            ENDIF
+            IF Z2_PTBL
+                Z2_OBJ1 = Z2_MT:MT_PRSO:Z2_CNT
+            ELSE
+                Z2_OBJ1 = Z2_MT:MT_PRSI:Z2_CNT
+            ENDIF
+            IF Z2_PTBL
+                Z2_OO = Z2_OBJ1
+                Z2_II = Z2_OBJ
+            ELSE
+                Z2_OO = Z2_OBJ
+                Z2_II = Z2_OBJ1
+            ENDIF
+            IF Z2_NUM > 1 || Z2_ALLQ
+                Z2_V = Z2_PARENT:Z2_WINNER
+                IF Z2_OO == O_NOT_HERE_OBJECT
+                    Z2_P_NOT_HERE += 1
+                    CONTINUE
+                ELSEIF Z2_PRSA == V_TAKE && Z2_II && Z2_ALLQ && Z2_PARENT:Z2_OO != Z2_II
+                    CONTINUE
+                ELSEIF Z2_P_GETFLAGS == P_ALL && Z2_PRSA == V_TAKE && ((Z2_PARENT:Z2_OO != Z2_WINNER && Z2_PARENT:Z2_OO != Z2_HERE && Z2_PARENT:Z2_OO != Z2_V && Z2_PARENT:Z2_OO != Z2_II && !Z2_ATTR:(Z2_PARENT:Z2_OO):F_SURFACEBIT) || !(Z2_ATTR:Z2_OO:F_TAKEBIT || Z2_ATTR:Z2_OO:F_TRYTAKEBIT))
+                    CONTINUE
+                ELSE
+                    IF Z2_OBJ1 == O_IT
+                        PRINTFORM %Z2_NAME:Z2_P_IT_OBJECT%
+                    ELSE
+                        PRINTFORM %Z2_NAME:Z2_OBJ1%
+                    ENDIF
+                    PRINTS ": "
+                ENDIF
+            ENDIF
+            Z2_PRSO = Z2_OO
+            Z2_PRSI = Z2_II
+            Z2_TMP = 1
+            CALL Z2_PERFORM, Z2_PRSA, Z2_PRSO, Z2_PRSI
+            Z2_V = RESULT
+            SIF Z2_V == M_FATAL
+                BREAK
+        WEND
+    ENDIF
+    IF Z2_V != M_FATAL
+        CALL Z2_APPLY, Z2_ACTION_R:(Z2_PARENT:Z2_WINNER), M_END
+        Z2_V = RESULT
+    ENDIF
+    SIF Z2_V == M_FATAL
+        Z2_P_CONT = 0
+ELSE
+    Z2_P_CONT = 0
+ENDIF
+SIF Z2_FINISHED
+    RETURN 0
+IF Z2_P_WON
+    SELECTCASE Z2_PRSA
+    CASE V_TELL, V_BRIEF, V_SUPER_BRIEF, V_VERBOSE, V_SAVE, V_VERSION, V_QUIT, V_RESTART, V_SCORE, V_SCRIPT, V_UNSCRIPT, V_RESTORE
+    CASEELSE
+        CALL Z2_CLOCKER
+    ENDSELECT
+ENDIF
+RETURN 0
+
+; gglobals.zil NOT-HERE-OBJECT-F and NOT-HERE-PRINT.
+@Z2R_NOT_HERE_OBJECT_F(Z2_RARG = 0)
+#DIM DYNAMIC Z2_RARG
+#DIM DYNAMIC Z2_PRSOQ
+Z2_PRSOQ = 1
+IF Z2_PRSO == O_NOT_HERE_OBJECT && Z2_PRSI == O_NOT_HERE_OBJECT
+    PRINTL Those things aren't here!
+    RETURN 1
+ELSEIF Z2_PRSO != O_NOT_HERE_OBJECT
+    Z2_PRSOQ = 0
+ENDIF
+Z2_P_CONT = 0
+Z2_QUOTE_FLAG = 0
+IF Z2_WINNER == O_ADVENTURER
+    PRINTS "You can't see any "
+    CALL Z2_NOT_HERE_PRINT, Z2_PRSOQ
+    PRINTSL " here!"
+ELSE
+    PRINTFORM The %Z2_NAME:Z2_WINNER% seems confused. "I don't see any
+    PRINTS " "
+    CALL Z2_NOT_HERE_PRINT, Z2_PRSOQ
+    PRINTSL " here!\""
+ENDIF
+RETURN 1
+
+@Z2_NOT_HERE_PRINT(Z2_PRSOQ)
+#DIM DYNAMIC Z2_PRSOQ
+IF Z2_P_OFLAG
+    SIF Z2_P_XADJ
+        PRINTFORM %Z2_DW:Z2_P_XADJN%
+    SIF Z2_P_XNAM
+        PRINTFORM %Z2_DW:Z2_P_XNAM%
+ELSEIF Z2_PRSOQ
+    CALL Z2_BUFFER_PRINT, Z2_ITBL:P_NC1, Z2_ITBL:P_NC1L, 0
+ELSE
+    CALL Z2_BUFFER_PRINT, Z2_ITBL:P_NC2, Z2_ITBL:P_NC2L, 0
+ENDIF

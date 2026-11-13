@@ -1,4 +1,28 @@
-# ZORKERB r29
+# ZORKERB r30
+
+## 日本語
+
+ZORKERB r30 は、r29 のゲームを PyEmuera 3.0.0 正式版（未改変、SHA-256 `8a7b3697b97155c4dc994c8349c6756bb0401000d3bbccd8e85ff046e3774b35`）で動かす版です。r29 は PyEmuera 3.0.0b2 を使っていました。
+
+- **ゲーム：** 処理は r29 と同じです。変わったのはタイトル表示（`ZORKERB r30 -- Native eraBASIC port`）だけです。
+- **セーブ：** 形式は r29 と同じ（セーブ形式29）で、r29 のセーブをそのまま読み込めます。r28 以前のセーブは読み込めません。
+- **検証：** 最終検証を PyEmuera 3.0.0 で最初からやり直し、回帰試験、セーブの検査、原作との比較、350点の完走のすべてで r29 と同じ結果になりました。期待値の変更はタイトル表示の1件だけです。
+
+r29 の変更内容は、下の「ZORKERB r29」にあります。
+
+## English
+
+ZORKERB r30 runs the r29 game on the PyEmuera 3.0.0 release (unmodified, SHA-256 `8a7b3697b97155c4dc994c8349c6756bb0401000d3bbccd8e85ff046e3774b35`). r29 used PyEmuera 3.0.0b2.
+
+- **Game:** the same as r29. Only the title line changed (`ZORKERB r30 -- Native eraBASIC port`).
+- **Saves:** the same format as r29 (save format 29); saves from r29 load unchanged. Saves from r28 and earlier are rejected.
+- **Verification:** the final verification was repeated from the start on PyEmuera 3.0.0. The regression tests, save checks, comparisons with the original and the 350-point route gave the same results as r29. The only changed expectation is the title line.
+
+The changes of r29 are listed under "ZORKERB r29" below.
+
+---
+
+# ZORKERB r29（前の版 / previous revision）
 
 ## 日本語
 
@@ -46,7 +70,7 @@ ZORKERB r29 は、ZORK I: The Great Underground Empire（Release 119 / Serial 88
 | 通常の入力だけの完走 | 350点・613手で終幕に到達 |
 | 配布物 | ZIP の完全性、検証したゲームとのバイト一致、展開した ZIP での起動・SAVE/RESTORE・RESTART・QUIT・350点経路 |
 
-詳細は [docs/VERIFICATION_ja.md](docs/VERIFICATION_ja.md) を参照してください。
+詳細は [docs/VERIFICATION_ja.md](../docs/VERIFICATION_ja.md) を参照してください。
 
 ### 既知の制限
 
@@ -57,7 +81,7 @@ ZORKERB r29 は、ZORK I: The Great Underground Empire（Release 119 / Serial 88
 - 端末で対話的に遊ぶと、ゲームの `>` と PyEmuera の入力欄の `> ` が重なって表示されます。
 - Emuera 1.824（Windows）では起動と序盤の操作を確認しています。回帰試験と原作との比較は PyEmuera で行っています。
 
-詳細は [docs/COMPATIBILITY_ja.md](docs/COMPATIBILITY_ja.md) を参照してください。
+詳細は [docs/COMPATIBILITY_ja.md](../docs/COMPATIBILITY_ja.md) を参照してください。
 
 ### 配布物
 
@@ -120,7 +144,7 @@ All results were obtained with PyEmuera 3.0.0b2 on Linux x86_64 with Python 3.13
 | Complete game with ordinary input | Ending reached with 350 points in 613 moves |
 | Archive | Integrity, byte-identical game files, and new game, SAVE/RESTORE, RESTART, QUIT and the 350-point route from the extracted ZIP |
 
-See [docs/VERIFICATION_en.md](docs/VERIFICATION_en.md) for details.
+See [docs/VERIFICATION_en.md](../docs/VERIFICATION_en.md) for details.
 
 ### Known limitations
 
@@ -131,7 +155,7 @@ See [docs/VERIFICATION_en.md](docs/VERIFICATION_en.md) for details.
 - In an interactive terminal, the game's `>` prompt and PyEmuera's `> ` input line appear together.
 - On Emuera 1.824 (Windows), start-up and the first moves have been checked; the regression tests and comparisons with the original were run under PyEmuera.
 
-See [docs/COMPATIBILITY_en.md](docs/COMPATIBILITY_en.md).
+See [docs/COMPATIBILITY_en.md](../docs/COMPATIBILITY_en.md).
 
 ### Files
 

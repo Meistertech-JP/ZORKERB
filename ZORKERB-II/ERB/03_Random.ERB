@@ -1,0 +1,62 @@
+﻿; Ported from ZORKERB I development/src/03_Random.ERB (gmacros RANDOM is identical
+; in Zork II). Names prefixed Z2_.
+; r29: Z-machine RANDOM (gmacros/ZIL <RANDOM n>, 1..n) as the single draw
+; primitive of the port. The ordinary mode is the engine RNG (RAND, saved by
+; DUMPRAND). #RANDOM (V-RANDOM) seeds it like a Standard 1.1 interpreter: a
+; seed 1..999 selects the predictable sequential mode (result = counter mod
+; seed, value = result mod n + 1), larger seeds reseed the engine RNG and 0
+; reseeds it unpredictably. Like RAND itself this function advances RNG state;
+; it changes nothing else.
+@Z2_RANDOM(Z2_N)
+#FUNCTION
+#DIM DYNAMIC Z2_N
+#DIM DYNAMIC Z2_R
+; RANDOM with an operand of 0 or less does not draw: it seeds the generator
+; with -operand (0: unpredictable) and returns 0, as the Z-machine does.
+SIF Z2_N <= 0
+    RETURNF Z2_SEED_RANDOM(0 - Z2_N)
+IF Z2_RNG_INTERVAL > 0
+    Z2_R = Z2_RNG_COUNTER
+    Z2_RNG_COUNTER += 1
+    SIF Z2_RNG_COUNTER >= Z2_RNG_INTERVAL
+        Z2_RNG_COUNTER = 0
+    RETURNF Z2_R % Z2_N + 1
+ENDIF
+IF Z2_RNG_SEEDED
+    ; A seeded generator like the reference interpreter's (A = A * 0x015A4E35
+    ; + 1, value bits 16-30), so that #RANDOM with a seed of 1000 or more
+    ; gives the same sequence in both. Only the low 32 bits of A matter.
+    Z2_RNG_A = (Z2_RNG_A * 22695477 + 1) & 4294967295
+    RETURNF ((Z2_RNG_A / 65536) & 32767) % Z2_N + 1
+ENDIF
+RETURNF RAND:Z2_N + 1
+
+; A #FUNCTION (it returns 0, as RANDOM does when it seeds), so that Z2_RANDOM,
+; itself a #FUNCTION, can seed without CALL.
+@Z2_SEED_RANDOM(Z2_SEED)
+#FUNCTION
+#DIM DYNAMIC Z2_SEED
+IF Z2_SEED > 0 && Z2_SEED < 1000
+    Z2_RNG_INTERVAL = Z2_SEED
+    Z2_RNG_COUNTER = 0
+    Z2_RNG_SEEDED = 0
+ELSEIF Z2_SEED >= 1000
+    Z2_RNG_INTERVAL = 0
+    Z2_RNG_COUNTER = 0
+    Z2_RNG_SEEDED = 1
+    Z2_RNG_A = Z2_SEED & 4294967295
+ELSE
+    Z2_RNG_INTERVAL = 0
+    Z2_RNG_COUNTER = 0
+    Z2_RNG_SEEDED = 0
+    RANDOMIZE
+ENDIF
+RETURNF 0
+
+@Z2_RANDOM_VALIDATE
+#FUNCTION
+SIF Z2_RNG_INTERVAL < 0 || Z2_RNG_INTERVAL > 999
+    RETURNF 0
+SIF Z2_RNG_INTERVAL == 0
+    RETURNF Z2_RNG_COUNTER == 0
+RETURNF Z2_RNG_COUNTER >= 0 && Z2_RNG_COUNTER < Z2_RNG_INTERVAL

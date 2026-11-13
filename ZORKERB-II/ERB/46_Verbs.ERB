@@ -1,0 +1,170 @@
+﻿; gverbs.zil game verbs, ported by hand.
+
+; V-RANDOM: <RANDOM <- 0 ,P-NUMBER>> (03_Random). Prints nothing. As the
+; Z-machine RANDOM: an operand of 0 or less seeds with its negation, a
+; positive one draws (P-NUMBER can be negative: see NUMBER?).
+@Z2R_V_RANDOM(Z2_RARG = 0)
+#DIM DYNAMIC Z2_RARG
+#DIM DYNAMIC Z2_ARG
+IF Z2_PRSO != O_INTNUM
+    PRINTL Illegal call to #RND.
+    RETURN 1
+ENDIF
+Z2_ARG = Z2_W16(0 - Z2_P_NUMBER)
+IF Z2_ARG > 0
+    Z2_ARG = Z2_RANDOM(Z2_ARG)
+ELSE
+    Z2_ARG = Z2_SEED_RANDOM(0 - Z2_ARG)
+ENDIF
+RETURN 1
+
+@Z2R_V_VERSION(Z2_RARG = 0)
+#DIM DYNAMIC Z2_RARG
+CALL Z2_VERSION
+RETURN 1
+
+; ITAKE is ported with V-TAKE; until then implicit takes are refused.
+@Z2_ITAKE(Z2_VB = 1)
+#DIM DYNAMIC Z2_VB
+CALL Z2_APPLY, "ITAKE", Z2_VB
+RETURN RESULT
+
+; YES?: <PRINTI ">"> <READ ...>, true for YES or Y.
+@Z2R_YESQ
+CALL Z2_READ_INPUT
+RETURN Z2_LXD:1 == W_YES || Z2_LXD:1 == W_Y
+
+; V-SAVE: <COND (<SAVE> <TELL "Ok." CR>) (T <TELL "Failed." CR>)>. The
+; image is written here, inside the turn, like the story's SAVE; the host slot
+; (0-9, default 0) stands for the file name the interpreter asks for.
+@Z2R_V_SAVE
+Z2_SAVE_RESUME = 1
+CALL Z2_SAVE_TEXT, 1
+SAVEDATA Z2_SLOT_REQ, Z2_SAVE_TAG + " slot " + TOSTR(Z2_SLOT_REQ)
+CALL Z2_SAVE_TEXT, 0
+Z2_SAVE_RESUME = 0
+CALL Z2_SLOT_OK, Z2_SLOT_REQ
+IF RESULT
+    PRINTL Ok.
+ELSE
+    PRINTL Failed.
+ENDIF
+RETURN 1
+
+; V-RESTORE: a successful RESTORE does not return (the game resumes inside the
+; saved V-SAVE, EVENTLOAD); otherwise "Failed.".
+@Z2R_V_RESTORE
+CALL Z2_RESTORE_SLOT, Z2_SLOT_REQ
+PRINTL Failed.
+RETURN 1
+
+; A slot holds a ZORKERB II save of this schema (not ZORKERB I, not an older
+; development save, not damaged): CHKDATA reads it and returns its tag.
+@Z2_SLOT_OK(Z2_S)
+#DIM DYNAMIC Z2_S
+SIF Z2_S < 0 || Z2_S > 9
+    RETURN 0
+CHKDATA Z2_S
+SIF RESULT != 0
+    RETURN 0
+; The description names the slot the file was written for: PyEmuera's
+; LOADDATA refuses (and stops the game on) a file whose own slot field differs
+; from the slot it is loaded from, e.g. 1.json copied to 3.json, but CHKDATA
+; does not check that field. The description is the only part CHKDATA shows.
+RETURN RESULTS == Z2_SAVE_TAG + " slot " + TOSTR(Z2_S)
+
+; Loads the slot if it is valid (never returns then); otherwise returns and
+; nothing has changed. CTX: 0 V-RESTORE, 1 FINISH, 2 title menu. In a game
+; (CTX 0/1) the current state is first written to the rollback slot: if the
+; loaded state fails Z2_SAVE_VALID (48_SaveCheck), EVENTLOAD loads the
+; rollback image back and RESTORE fails as the story's does ("Failed."),
+; with the game unchanged.
+@Z2_RESTORE_SLOT(Z2_S, Z2_CTX = 0)
+#DIM DYNAMIC Z2_S
+#DIM DYNAMIC Z2_CTX
+CALL Z2_SLOT_OK, Z2_S
+SIF !RESULT
+    RETURN 0
+Z2_RB_CTX = Z2_CTX
+IF Z2_CTX != 2
+    CALL Z2_SAVE_TEXT, 1
+    SAVEDATA Z2_RB_SLOT, "ZORKERB II rollback"
+    CALL Z2_SAVE_TEXT, 0
+    CHKDATA Z2_RB_SLOT
+    SIF RESULT != 0
+        RETURN 0
+ENDIF
+Z2_RB_PENDING = 1
+LOADDATA Z2_S
+Z2_RB_PENDING = 0
+RETURN 0
+
+@Z2R_V_VERIFY
+PRINTL Verifying disk...
+PRINTL The disk is correct.
+RETURN 1
+
+; DIROUT/DIRIN (transcript and command files) have no counterpart; the story
+; prints nothing for them.
+@Z2R_V_RECORD
+RETURN 1
+
+@Z2R_V_UNRECORD
+RETURN 1
+
+@Z2R_V_COMMAND_FILE
+RETURN 1
+
+; Save files and line breaks. The native Emuera's default save format (text)
+; writes each string on a line of its own and reads it back line by line, so a
+; string holding a line break splits and every later element of the array
+; shifts (Windows acceptance D-R08: 5 LDESC and 7 TEXT values have line
+; breaks). Around every SAVEDATA the line breaks of the saved description
+; strings are swapped for Z2_NL_MARK, which no game text contains
+; (tools/native_save_test.py checks it), and swapped back right after the
+; save and at the start of EVENTLOAD. The game never sees the marker; files
+; written before this change (no marker) load as before.
+@Z2_SAVE_TEXT(Z2_ENC)
+#DIM DYNAMIC Z2_ENC
+#DIM DYNAMIC Z2_K
+FOR Z2_K, 0, 256
+    IF Z2_ENC
+        Z2_LDESC:Z2_K '= Z2_STR_SWAP(Z2_LDESC:Z2_K, "\n", Z2_NL_MARK)
+        Z2_FDESC:Z2_K '= Z2_STR_SWAP(Z2_FDESC:Z2_K, "\n", Z2_NL_MARK)
+        Z2_TEXT:Z2_K '= Z2_STR_SWAP(Z2_TEXT:Z2_K, "\n", Z2_NL_MARK)
+    ELSE
+        Z2_LDESC:Z2_K '= Z2_STR_SWAP(Z2_LDESC:Z2_K, Z2_NL_MARK, "\n")
+        Z2_FDESC:Z2_K '= Z2_STR_SWAP(Z2_FDESC:Z2_K, Z2_NL_MARK, "\n")
+        Z2_TEXT:Z2_K '= Z2_STR_SWAP(Z2_TEXT:Z2_K, Z2_NL_MARK, "\n")
+    ENDIF
+NEXT
+RETURN 0
+
+; every occurrence of the one-character string FROM replaced by TO (no regex)
+@Z2_STR_SWAP(Z2_S, Z2_FROM, Z2_TO)
+#FUNCTIONS
+#DIMS DYNAMIC Z2_S
+#DIMS DYNAMIC Z2_FROM
+#DIMS DYNAMIC Z2_TO
+#DIMS DYNAMIC Z2_R
+#DIM DYNAMIC Z2_K
+Z2_K = STRFIND(Z2_S, Z2_FROM)
+SIF Z2_K < 0
+    RETURNF Z2_S
+Z2_R '= ""
+WHILE Z2_K >= 0
+    Z2_R '= Z2_R + SUBSTRING(Z2_S, 0, Z2_K) + Z2_TO
+    Z2_S '= SUBSTRING(Z2_S, Z2_K + 1)
+    Z2_K = STRFIND(Z2_S, Z2_FROM)
+WEND
+RETURNF Z2_R + Z2_S
+
+; what RESETDATA did to these variables before they became GLOBAL
+@Z2_RESET_GLOBALS
+Z2_RNG_INTERVAL = 0
+Z2_RNG_COUNTER = 0
+Z2_RNG_SEEDED = 0
+Z2_RNG_A = 0
+Z2_RB_PENDING = 0
+Z2_RB_CTX = 0
+RETURN 0

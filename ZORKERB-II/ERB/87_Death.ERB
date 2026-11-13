@@ -1,0 +1,32 @@
+﻿; gverbs.zil FINISH (reads input, so it is ported by hand).
+@Z2_FINISH
+CALL Z2R_V_SCORE, 1
+CALL Z2_FINISH_ASK
+
+; The REPEAT of FINISH. RESTART and QUIT are carried out by SHOW_SHOP
+; (Z2_FINISHED 2/1); RESTORE loads the slot here (and does not return), or
+; prints "Failed." and asks again.
+@Z2_FINISH_ASK
+#DIMS DYNAMIC Z2_W
+WHILE 1
+    PRINTL 
+    PRINTL Would you like to restart the game from the beginning, restore a saved game position, or end this session of the game?
+    PRINTL (Type RESTART, RESTORE, or QUIT):
+    CALL Z2_READ_INPUT
+    SIF Z2_QUIT
+        RETURN
+    Z2_W '= Z2_DW:(Z2_LXD:1)
+    IF Z2_LXD:1 == 0
+    ELSEIF Z2_W == "restar"
+        Z2_FINISHED = 2
+        RETURN
+    ELSEIF Z2_W == "restor"
+        CALL Z2_RESTORE_SLOT, Z2_SLOT_REQ, 1
+        PRINTL Failed.
+    ELSEIF Z2_W == "quit" || Z2_W == "q"
+        Z2_FINISHED = 1
+        RETURN
+    ENDIF
+WEND
+
+; 2actions.zil V-SCORE with the rank table.

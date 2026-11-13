@@ -5,6 +5,7 @@
 ### 遊ぶ
 
 - [はじめに](Getting-Started)
+- [ZORKERB II](ZORKERB-II)
 - [遊び方](Playing)
 - [保存と復帰](Saving-and-Restoring)
 - [互換性と既知の制限](Compatibility-and-Limitations)
@@ -27,6 +28,7 @@
 ### Play
 
 - [Getting started](Getting-Started-English)
+- [ZORKERB II](ZORKERB-II-English)
 - [Playing](Playing-English)
 - [Saving and restoring](Saving-and-Restoring-English)
 - [Compatibility and limitations](Compatibility-and-Limitations-English)

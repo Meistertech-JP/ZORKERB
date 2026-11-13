@@ -2,7 +2,7 @@
 
 ## 原典
 
-ZORKERB r29 の原典は、historicalsource/zork1 のコミット `97b7b3d68c075dd9af7da499c3e9690ada3471fd` の ZIL ソースです。
+ZORKERB I の原典は、historicalsource/zork1 のコミット `97b7b3d68c075dd9af7da499c3e9690ada3471fd` の ZIL ソースです。
 
 原典は https://github.com/historicalsource/zork1/tree/97b7b3d68c075dd9af7da499c3e9690ada3471fd で読めます。
 
@@ -28,7 +28,7 @@ ZORKERB r29 の原典は、historicalsource/zork1 のコミット `97b7b3d68c075
 
 開発環境では、原典の全 ROUTINE について、移植での対応箇所、原典の文字列が移植にあるか、その文字列が原作との比較で実際に出力されたか、原典内で参照されているかを一覧にしています。
 
-r29 の集計は次のとおりです。
+集計は次のとおりです（ZORKERB I r30）。
 
 | 判定 | 件数 | 意味 |
 | --- | ---: | --- |
@@ -37,7 +37,7 @@ r29 の集計は次のとおりです。
 | UNREFERENCED | 1 | 原典のどこからも使われていない（`UNTIE-FROM`。この ROUTINE を指す構文行がない） |
 | GAP | 0 | 文字列が移植にも記録された理由にもないもの |
 
-GAP が0であることは、原典の文字列がすべて移植にあるか、到達しない理由が記録されているという意味です。すべての分岐の動作を確かめたという意味ではありません。動作の検証の範囲は[検証](VERIFICATION_ja.md)にあります。
+GAP が0であることは、原典の文字列がすべて移植にあるか、到達しない理由が記録されているという意味です。すべての分岐の動作を確かめたという意味ではありません。動作の検証の範囲は[検証](../../docs/VERIFICATION_ja.md)にあります。
 
 ## 到達しない分岐
 

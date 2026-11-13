@@ -4,7 +4,7 @@
 
 ## 原典
 
-ZORKERB r29 の原典は、historicalsource/zork1 のコミット `97b7b3d68c075dd9af7da499c3e9690ada3471fd` の ZIL ソースです。
+ZORKERB I の原典は、historicalsource/zork1 のコミット `97b7b3d68c075dd9af7da499c3e9690ada3471fd` の ZIL ソースです。
 
 原典は https://github.com/historicalsource/zork1/tree/97b7b3d68c075dd9af7da499c3e9690ada3471fd で読めます。
 
@@ -30,7 +30,7 @@ ZORKERB r29 の原典は、historicalsource/zork1 のコミット `97b7b3d68c075
 
 開発環境では、原典の全 ROUTINE について、移植での対応箇所、原典の文字列が移植にあるか、その文字列が原作との比較で実際に出力されたか、原典内で参照されているかを一覧にしています。
 
-r29 の集計は次のとおりです。
+集計は次のとおりです（ZORKERB I r30）。
 
 | 判定 | 件数 | 意味 |
 | --- | ---: | --- |

@@ -1,70 +1,81 @@
 # Playing
 
-ZORKERB is played like the original Zork I: you type short English commands. This page covers the command forms, common commands, and saving and restoring.
+ZORKERB I and ZORKERB II are text adventures played, as the originals, by typing English commands. This page covers the command forms, common commands, and saving and restoring. 日本語: [PLAYING_ja.md](PLAYING_ja.md)
 
 ## Command forms
 
-Commands are not case-sensitive.
+Commands are short English sentences. Case does not matter.
 
 | Form | Examples |
 | --- | --- |
 | Verb only | `look`, `inventory`, `wait` |
-| Verb and object | `take lamp`, `open mailbox`, `read leaflet` |
+| Verb and object | `take lamp`, `open door`, `read leaflet` |
 | Verb, object and preposition | `put coins in case`, `attack troll with sword`, `unlock grate with key` |
-| Several objects | `take all`, `take lamp and sword` |
+| Several objects | `take all`, `take lamp and sword`, `take all but sword` |
 | Several commands | `open mailbox. take leaflet`, `north then east` |
-| Orders to a character | name the character, as in `tell cyclops to ...` |
+| Orders to a character | name the character, as in `tell robot to ...` |
 
-Input is parsed with the original game's dictionary and syntax rules. Unknown words get `I don't know the word "..."`. As in the original, words are matched by their first six letters.
+In the included games, input is parsed with the original story's dictionary and syntax rules. Unknown words get `I don't know the word "..."`. As in the originals, words are matched by their first six letters.
 
 ## Common commands
 
 | Command | Meaning |
 | --- | --- |
 | `look` (`l`) | Describe the surroundings |
-| `examine` *object* | Look at an object (`x` is not available) |
+| `examine` *object* | Look at an object (`x` is not in the originals' dictionaries) |
 | `inventory` (`i`) | List what you carry |
-| `north`, `south`, `east`, `west`, `up`, `down`, `ne`, `nw`, `se`, `sw` (also `n`, `s`, ...) | Move |
+| `north`, `south`, `east`, `west`, `up`, `down`, `ne`, `nw`, `se`, `sw` (also `n`, `s` and so on) | Move |
 | `take` *object*, `drop` *object* | Pick up, put down |
 | `open` *object*, `close` *object* | Open, close |
 | `turn on lamp` | Light the lamp |
-| `again` (`g`) | Repeat the previous command |
-| `oops` *word* | Replace the unknown word in the previous input |
+| `again` (`g`) | Repeat the last command |
+| `oops` *word* | Replace the unknown word in the last input |
 | `score` | Show the score and moves |
-| `verbose`, `brief`, `superbrief` | Change how much room description is shown |
-| `diagnose` | Report your health |
-| `version` | Show the original game's release information |
+| `verbose`, `brief`, `superbrief` | How much of a room description to show |
+| `diagnose` | Check your health |
+| `version` | Show the original's release information |
 
-`x` is not in the Release 119 dictionary; use `examine`.
+When the game asks "What do you want to ...?", you can answer with just the object's name.
 
 ## Saving and restoring
 
-| Action | Input |
+| To | Type |
 | --- | --- |
-| Save | `save` (slot 0), `save 3` (slot 3) |
-| Restore during play | `restore`, `restore 3` |
-| Restore from the title screen | enter `1`, then the slot number |
+| save | `save` (slot 0), `save 3` (slot 3) |
+| restore during play | `restore`, `restore 3` |
+| restore from the title screen | `1`, then the slot number |
 
-- A successful save prints `Ok.`; a failure prints `Failed.`. The slot number (0–9) takes the place of the file name the original game asks for.
+- A successful save or restore prints `Ok.`, a failed one `Failed.`. Where the originals ask for a file name, the ports use slot numbers 0 to 9.
 - `save` without a number overwrites slot 0.
-- The save format is version 29. Saves from r28 and earlier and the original game's Quetzal saves cannot be restored.
-- Saves are written to `.pyemuera/` inside the game folder (PyEmuera's behaviour).
+- With PyEmuera, saves are written to `.pyemuera/saves/` inside the game folder (for example `ZORKERB-I/.pyemuera/saves/`). Each game keeps its own saves.
+- A damaged save or one of another game is not loaded; during play this prints `Failed.` and nothing changes.
+- Saves of the originals (Quetzal) are not compatible.
 
-## Restart and quit
+Differences between the games:
 
-| Input | Effect |
+|  | ZORKERB I | ZORKERB II |
+| --- | --- | --- |
+| Saves of earlier revisions | Save format 29. Saves from r29 load; saves from r28 and earlier are rejected | First public release; there are no earlier revisions |
+
+## Starting over and quitting
+
+| Type | Effect |
 | --- | --- |
-| `restart` | Start over after confirmation |
-| `quit` | Quit after confirmation |
+| `restart` | Start over after a confirmation |
+| `quit` | Quit after a confirmation |
 
-After death or victory you choose between RESTART, RESTORE and QUIT, as in the original.
+After dying or winning you choose RESTART, RESTORE or QUIT, as in the originals.
 
 ## Random numbers
 
-Combat, the thief and some other events use random numbers, drawn in the same order as in the original.
+Combat, characters and other events use random numbers, drawn at the same places and in the same order as in the originals.
 
-The original game's debugging command `#random` *n* (1–999) switches to the Z-machine's predictable random mode. In that mode the same input produces the same random sequence as the original game.
+The originals' debugging command `#random` *number* switches to the Z-machine's predictable random mode; the same input then gives the same random sequence as the original.
 
-## The original instructions
+|  | ZORKERB I | ZORKERB II |
+| --- | --- | --- |
+| Numbers | 1 to 999 (sequential mode) | 1 to 999 sequential mode; 1000 and above use the same generator as the Frotz used for comparison |
 
-The game's own introduction is on the leaflet in the mailbox at the start (`read leaflet`).
+## The originals' own instructions
+
+In ZORKERB I, the leaflet in the mailbox (`read leaflet`) explains how to play.

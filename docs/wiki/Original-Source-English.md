@@ -1,10 +1,10 @@
 [日本語](Original-Source) | English
 
-# Original source and ERB
+# Original source and ERB (ZORKERB I)
 
 ## Source
 
-ZORKERB r29 is based on the ZIL source of historicalsource/zork1 at commit `97b7b3d68c075dd9af7da499c3e9690ada3471fd`, available at https://github.com/historicalsource/zork1/tree/97b7b3d68c075dd9af7da499c3e9690ada3471fd.
+ZORKERB I is based on the ZIL source of historicalsource/zork1 at commit `97b7b3d68c075dd9af7da499c3e9690ada3471fd`, available at https://github.com/historicalsource/zork1/tree/97b7b3d68c075dd9af7da499c3e9690ada3471fd.
 
 The original story used for comparisons is `COMPILED/zork1.z3` of the same commit (Release 119 / Serial 880429, SHA-256 `37084966477dff679282de42974b2077156b1bd68fad92a65d4ea94d8eb64d79`).
 

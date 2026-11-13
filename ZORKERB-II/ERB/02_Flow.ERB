@@ -1,0 +1,146 @@
+﻿; ZORKERB II flow. Emuera owns TITLE -> FIRST -> SHOP and post-load entry, as
+; in ZORKERB I.
+@SYSTEM_TITLE
+PRINTL ZORK II: The Wizard of Frobozz
+PRINTL ZORKERB II -- Native eraBASIC port
+PRINTL Original game: Infocom.
+$TITLE_MENU
+PRINTL [0] New game  [1] Restore  [9] Quit
+INPUT
+SELECTCASE RESULT
+CASE 1
+    ; Host menu (not story text), as in ZORKERB I: choose the save slot.
+    PRINTL Save slot (0-9):
+    INPUT
+    IF RESULT < 0 || RESULT > 9
+        PRINTL Invalid slot.
+        GOTO TITLE_MENU
+    ENDIF
+    CALL Z2_RESTORE_SLOT, RESULT, 2
+    PRINTL No compatible ZORKERB II save in that slot.
+CASE 0
+    RESETDATA
+    CALL Z2_RESET_GLOBALS
+    CALL Z2_LOAD_STATIC
+    CALL Z2_INIT_STATE
+    CALL Z2_NEW_GAME
+    BEGIN FIRST
+CASE 9
+    QUIT
+ENDSELECT
+GOTO TITLE_MENU
+
+@EVENTFIRST
+BEGIN SHOP
+
+@EVENTSHOP
+RETURN
+
+@SYSTEM_AUTOSAVE
+RETURN
+
+@EVENTLOAD
+; A save image is taken inside V-SAVE (Z2_SAVE_RESUME = 1). Loading it resumes
+; there, as a Z-machine RESTORE resumes at the SAVE instruction: V-SAVE prints
+; "Ok." and the rest of that turn of MAIN-LOOP-1 runs (the M-END call of the
+; winner's location; SAVE does not run the clock). Immutable data are rebuilt;
+; everything else is the loaded state.
+CALL Z2_SAVE_TEXT, 0
+CALL Z2_LOAD_STATIC
+Z2_FINISHED = 0
+Z2_QUIT = 0
+IF Z2_RB_PENDING == 1
+    ; a slot was loaded: check it before anything runs
+    Z2_RB_PENDING = 0
+    CALL Z2_SAVE_VALID
+    IF !RESULT
+        IF Z2_RB_CTX == 2
+            PRINTL This save has an invalid ZORKERB II state.
+            BEGIN TITLE
+        ENDIF
+        Z2_RB_PENDING = 2
+        LOADDATA Z2_RB_SLOT
+    ENDIF
+ELSEIF Z2_RB_PENDING == 2
+    ; the rollback image: the game as it was when RESTORE was typed
+    Z2_RB_PENDING = 0
+    PRINTL Failed.
+    IF Z2_RB_CTX == 1
+        CALL Z2_FINISH_ASK
+    ELSE
+        CALL Z2_APPLY, Z2_ACTION_R:(Z2_PARENT:Z2_WINNER), M_END
+        SIF RESULT == M_FATAL
+            Z2_P_CONT = 0
+    ENDIF
+    GOTO Z2_AFTER_LOAD
+ENDIF
+IF Z2_SAVE_RESUME
+    Z2_SAVE_RESUME = 0
+    PRINTL Ok.
+    CALL Z2_APPLY, Z2_ACTION_R:(Z2_PARENT:Z2_WINNER), M_END
+    SIF RESULT == M_FATAL
+        Z2_P_CONT = 0
+ENDIF
+$Z2_AFTER_LOAD
+SIF Z2_QUIT || Z2_FINISHED == 1
+    QUIT
+IF Z2_FINISHED == 2
+    Z2_FINISHED = 0
+    RESETDATA
+    CALL Z2_RESET_GLOBALS
+    CALL Z2_LOAD_STATIC
+    CALL Z2_INIT_STATE
+    CALL Z2_NEW_GAME
+ENDIF
+
+@SHOW_SHOP
+$Z2_PROMPT
+CALL Z2_READ_TURN
+SIF Z2_QUIT || Z2_FINISHED == 1
+    QUIT
+IF Z2_FINISHED == 2
+    ; RESTART: the game restarts from the beginning (title skipped).
+    Z2_FINISHED = 0
+    RESETDATA
+    CALL Z2_RESET_GLOBALS
+    CALL Z2_LOAD_STATIC
+    CALL Z2_INIT_STATE
+    CALL Z2_NEW_GAME
+ENDIF
+GOTO Z2_PROMPT
+
+; zork2.zil GO: the opening banner (V-VERSION) and V-LOOK of the first room.
+@Z2_NEW_GAME
+Z2_HERE = O_INSIDE_BARROW
+Z2_WINNER = O_ADVENTURER
+Z2_MOVES = 0
+Z2_SCORE = 0
+Z2_VERBOSE = 0
+Z2_SUPER_BRIEF = 0
+Z2_LUCKY = 1
+; GO: <ENABLE <QUEUE I-WIZARD 4>> then <QUEUE I-LANTERN 200>.
+CALL Z2_QUEUE, INT_WIZARD, 4, 1
+CALL Z2_QUEUE, INT_LANTERN, 200, 0
+; "clean up junk compiler can't do"
+Z2_VTYPE:O_BALLOON = F_NONLANDBIT
+Z2_VTYPE:O_BUCKET = F_NONLANDBIT
+Z2_SIZE:O_SEWL = 30
+Z2_SIZE:O_SWWL = 29
+Z2_SIZE:O_SSWL = 28
+Z2_SIZE:O_SNWL = 31
+Z2_LITQ = 1
+Z2_WINNER = O_ADVENTURER
+Z2_P_IT_OBJECT = 0
+CALL Z2_MOVE, O_ADVENTURER, Z2_HERE
+IF !Z2_ATTR:Z2_HERE:F_TOUCHBIT
+    CALL Z2_VERSION
+    PRINTL
+ENDIF
+CALL Z2R_V_LOOK
+
+@Z2_VERSION
+PRINTL ZORK II: The Wizard of Frobozz
+PRINTL Infocom interactive fiction - a fantasy story
+PRINTL Copyright (c) 1981, 1982, 1983, 1986 Infocom, Inc. All rights reserved.
+PRINTL ZORK is a registered trademark of Infocom, Inc.
+PRINTL Release 63 / Serial number 860811
