@@ -9,11 +9,11 @@ Ports of Infocom's text adventures (ZORKERB I and ZORKERB II) to Emuera-compatib
 
 All game logic is written in ERB, rewritten from the original ZIL sources (released by Microsoft under the MIT License); the original English text is used unchanged. No Z-machine interpreter and no original story file are used at run time.
 
-ZORKERB is an unofficial port. It is not an official release of, and is not endorsed by, Infocom, Microsoft, the authors of Emuera or the PyEmuera developers.
+ZORKERB is an unofficial port. It is not an official release of, and is not endorsed by, Infocom and Microsoft.
 
 ## Starting
 
-Python 3.10 or later is required (not included).
+Python 3.10 or later is required.
 
 - **Windows:** double-click `ZORKERB-I.bat` or `ZORKERB-II.bat`.
 - **Elsewhere:** run in this folder:
