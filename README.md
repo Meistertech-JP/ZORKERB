@@ -7,13 +7,13 @@ Infocom のテキストアドベンチャー（ZORKERB I・ZORKERB II）を、Em
 | ZORKERB I | ZORK I: The Great Underground Empire（Release 119 / Serial 880429） | `ZORKERB-I.bat` | [ZORKERB-I/README_ja.md](ZORKERB-I/README_ja.md) |
 | ZORKERB II | ZORK II: The Wizard of Frobozz（Release 63 / Serial 860811） | `ZORKERB-II.bat` | [ZORKERB-II/README_ja.md](ZORKERB-II/README_ja.md) |
 
-ゲームの処理はすべて ERB で書かれています。原作の ZIL ソース（Microsoft が MIT License で公開）をもとに書き直し、原作の文章（英語）をそのまま使っています。実行時に Z-machine の解釈系や原作の story ファイルは使いません。
+ゲームの処理はすべて ERB で書かれています。原作の ZIL ソース（Microsoft が MIT License で公開）をもとに書き直し、原作の文章（英語）をそのまま使っています。Z-machine の解釈系や原作の story 無しで実行できます。
 
-ZORKERB は非公式の移植です。Infocom、Microsoft、Emuera の作者、PyEmuera の開発者による公式版ではなく、これらの承認を受けたものでもありません。
+ZORKERB は非公式の移植です。Infocom、Microsoftの承認を受けたものでもありません。
 
 ## 起動
 
-Python 3.10 以上が必要です（同梱していません）。
+Python 3.10 以上が必要です。
 
 - **Windows：** `ZORKERB-I.bat` または `ZORKERB-II.bat` をダブルクリックします。
 - **そのほかの環境：** このフォルダーで次のように実行します。
