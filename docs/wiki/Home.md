@@ -12,7 +12,7 @@ ZORKERB は、Infocom のテキストアドベンチャーを eraBASIC（ERB・E
 - ゲームの処理はすべて ERB で書かれています。2作品で共通の PyEmuera 3.0.0（リポジトリ直下の `PyEmuera-3.0.0.pyz`）で動かし、実行時に Z-machine の解釈系や原作の story ファイルは使いません。
 - Windows では `ZORKERB-I.bat` または `ZORKERB-II.bat` をダブルクリックすると起動します。
 
-ZORKERB は Infocom、Microsoft、Emuera の作者、PyEmuera の開発者による公式版ではなく、これらの承認を受けたものでもありません。
+ZORKERB は InfocomやMicrosoftの承認を受けたものでもありません。
 
 ## 遊ぶ
 
